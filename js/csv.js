@@ -67,6 +67,19 @@ function csvToEntries(text) {
     const menstrualCol = idx('Menstrual Cycle');
     const menstrualCycle = menstrualCol > -1 && (cols[menstrualCol] || '').trim().toLowerCase() === 'yes';
 
+    // Yes/No/blank per session, same "null = unanswered" convention as the
+    // live form (see showeredBeforeAsanas in js/app.js) rather than defaulting
+    // an absent column to a false "No".
+    const showerVal = (colName) => {
+      const col = idx(colName);
+      if (col === -1 || !cols[col]) return null;
+      return cols[col].trim().toLowerCase() === 'yes';
+    };
+    const showeredBeforeAsanas = {
+      morning: showerVal('Showered Before Asanas (Morning)'),
+      evening: showerVal('Showered Before Asanas (Evening)'),
+    };
+
     entries[date] = {
       date,
       practiceTime: (idx('Time of Practice') > -1 && cols[idx('Time of Practice')]) || '06:00',
@@ -78,6 +91,7 @@ function csvToEntries(text) {
       menstrualCycle,
       kriyaSadhana,
       asanaRatings,
+      showeredBeforeAsanas,
       imported: true,
     };
   });
