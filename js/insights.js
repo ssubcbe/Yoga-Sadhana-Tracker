@@ -1,0 +1,739 @@
+// All insight computation + tiny dependency-free SVG charts (no chart library
+// needed). Color ramp is sequential, single-hue-family, light->dark = low->high
+// score, built from the brand's saffron/maroon so charts read as one system.
+const SCORE_RAMP = ['#F3D9C4', '#EFB27E', '#E8842A', '#464038']; // scores 1..4
+// Matches the four smiley colors exactly (Very difficult -> Difficult ->
+// Easy -> Pleasure), for the 24 per-asana mini charts specifically, so a
+// bar's color reads the same way the rating smileys already do. Deliberately
+// NOT blended between adjacent colors: an earlier version did an RGB lerp
+// for fractional (Morning+Evening averaged) scores like 2.5, but every blend
+// path tried (RGB and hue-based) either looked muddy or - worse, with hue
+// interpolation - made a mediocre score momentarily indistinguishable from
+// "Pleasure" green. Snapping to the nearest whole score (see
+// discreteAsanaColor below) means a bar is always one of these four exact
+// colors; the tooltip still shows the precise averaged value.
+const ASANA_BAR_RAMP = ['#E5352B', '#F5900E', '#2F8FE0', '#4CAF50'];
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function rampColor(score, palette) {
+  palette = palette || SCORE_RAMP;
+  const clamped = Math.max(1, Math.min(4, score));
+  const idx = clamped - 1;
+  const lo = Math.floor(idx), hi = Math.min(3, Math.ceil(idx));
+  const t = idx - lo;
+  return lerpHex(palette[lo], palette[hi], t);
+}
+function lerpHex(a, b, t) {
+  const pa = hexToRgb(a), pb = hexToRgb(b);
+  const r = Math.round(pa.r + (pb.r - pa.r) * t);
+  const g = Math.round(pa.g + (pb.g - pa.g) * t);
+  const bl = Math.round(pa.b + (pb.b - pa.b) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+// Rounds to the nearest whole rating (1-4) and returns that exact smiley
+// color - no in-between blend. See the note above ASANA_BAR_RAMP.
+function discreteAsanaColor(value) {
+  const idx = Math.max(1, Math.min(4, Math.round(value))) - 1;
+  return ASANA_BAR_RAMP[idx];
+}
+
+function formatDDMMM(dateStr) {
+  const [, m, d] = dateStr.split('-');
+  return `${d}-${MONTH_ABBR[parseInt(m, 10) - 1]}`;
+}
+function formatDDMM(dateStr) {
+  const [, m, d] = dateStr.split('-');
+  return `${d}-${m}`;
+}
+
+function timeBucket(hhmm) {
+  if (!hhmm) return 'Unspecified';
+  const h = parseInt(hhmm.split(':')[0], 10);
+  if (h >= 5 && h < 11) return 'Morning';
+  if (h >= 11 && h < 17) return 'Afternoon';
+  if (h >= 17 && h < 21) return 'Evening';
+  return 'Night';
+}
+
+// asanaRatings is { morning: {asanaKey: value}, evening: {...} } going
+// forward, but older saved entries have a flat { asanaKey: value } shape
+// from before Morning/Evening sessions existed. This flattens either shape
+// into one list of [key, value] entries (both sessions' ratings count
+// equally, per asana).
+function flattenAsanaEntries(ratings) {
+  if (!ratings) return [];
+  if (ratings.morning || ratings.evening) {
+    return [...Object.entries(ratings.morning || {}), ...Object.entries(ratings.evening || {})];
+  }
+  return Object.entries(ratings);
+}
+
+// Equal weight per asana (and per session): plain mean of every rating from
+// whichever session(s) were logged that day.
+function entryAvgScore(entry) {
+  const scores = flattenAsanaEntries(entry.asanaRatings).map(([, v]) => v).filter(Boolean);
+  if (!scores.length) return null;
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
+}
+
+function topAsanasForEntry(entry, n) {
+  n = n || 3;
+  return flattenAsanaEntries(entry.asanaRatings)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([key, val]) => ({ name: (ASANAS.find(a => a.key === key) || {}).name || key, value: val }));
+}
+
+function bottomAsanasForEntry(entry, n) {
+  n = n || 3;
+  return flattenAsanaEntries(entry.asanaRatings)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, n)
+    .map(([key, val]) => ({ name: (ASANAS.find(a => a.key === key) || {}).name || key, value: val }));
+}
+
+// Day score for the 30-day trend chart specifically: the Morning session's
+// own average and the Evening session's own average, then averaged together
+// (or whichever session exists, if only one was logged) - the same
+// "average per session, not per rating" convention as asanaValueForDay,
+// just applied at the whole-day level instead of per-asana. This is
+// deliberately a separate function from entryAvgScore (used by the stat
+// tiles/streak/key message), which instead flattens every rating from both
+// sessions into one list before averaging - equal weight per asana rating
+// regardless of session. Both conventions are reasonable; kept apart so
+// changing the trend chart doesn't quietly shift those other numbers.
+function dayScoreForTrend(entry) {
+  if (!entry || !entry.asanaRatings) return null;
+  const r = entry.asanaRatings;
+  const meanOf = (map) => {
+    const vals = Object.values(map || {}).filter(v => v !== undefined && v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+  if (r.morning || r.evening) {
+    const m = meanOf(r.morning), e = meanOf(r.evening);
+    if (m !== null && e !== null) return (m + e) / 2;
+    return m !== null ? m : e;
+  }
+  return meanOf(r);
+}
+
+// One representative value per asana per day for the mini 7-day charts -
+// the average of Morning/Evening when both were logged that day.
+function asanaValueForDay(entry, asanaKey) {
+  if (!entry || !entry.asanaRatings) return undefined;
+  const r = entry.asanaRatings;
+  if (r.morning || r.evening) {
+    const m = r.morning ? r.morning[asanaKey] : undefined;
+    const e = r.evening ? r.evening[asanaKey] : undefined;
+    if (m !== undefined && e !== undefined) return (m + e) / 2;
+    return m !== undefined ? m : e;
+  }
+  return r[asanaKey];
+}
+
+// Same per-day lookup, but scoped to a single session's own rating for the
+// Morning/Evening mini-chart tabs - always a whole 1-4 number (no averaging),
+// so those tabs never need a blended bar color. Entries saved before the
+// Morning/Evening split (flat asanaRatings shape) count as Morning, matching
+// flattenAsanaEntries()'s convention elsewhere.
+function asanaValueForDayMode(entry, asanaKey, mode) {
+  if (!entry || !entry.asanaRatings) return undefined;
+  const r = entry.asanaRatings;
+  if (mode === 'morning') {
+    if (r.morning) return r.morning[asanaKey];
+    if (!r.evening) return r[asanaKey];
+    return undefined;
+  }
+  if (mode === 'evening') {
+    return r.evening ? r.evening[asanaKey] : undefined;
+  }
+  return asanaValueForDay(entry, asanaKey);
+}
+
+function sortedDates(entriesMap) {
+  return Object.keys(entriesMap).sort();
+}
+
+function addDays(dateStr, delta) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+function computeStats(entriesMap) {
+  const dates = sortedDates(entriesMap);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const last30 = dates.filter(d => d >= addDays(todayStr, -29));
+  const last7 = dates.filter(d => d >= addDays(todayStr, -6));
+
+  const avgOf = (list) => {
+    const scores = list.map(d => entryAvgScore(entriesMap[d])).filter(v => v !== null);
+    return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+  };
+
+  let streak = 0;
+  let cursor = todayStr;
+  while (entriesMap[cursor]) { streak++; cursor = addDays(cursor, -1); }
+
+  return {
+    totalDaysLogged: dates.length,
+    todayScore: entriesMap[todayStr] ? entryAvgScore(entriesMap[todayStr]) : null,
+    avg7: avgOf(last7),
+    avg30: avgOf(last30),
+    streak,
+    last30Dates: last30,
+  };
+}
+
+// Six always-on factors (rendered as a fixed 3x2 grid), plus a 7th shown only
+// for accounts with at least one "female" entry. A factor's getCategory can
+// return null to opt an entry out of that particular breakdown.
+const FACTORS = {
+  moon: { label: 'Moon phase', getCategory: (e) => getMoonPhase(e.date).label },
+  meal: { label: 'Meal / snack status', getCategory: (e) => (MEAL_STATUS_OPTIONS.find(o => o.value === e.mealStatus) || {}).label || 'Unspecified' },
+  fasting: { label: 'Recent fasting', getCategory: (e) => (FASTING_OPTIONS.find(o => o.value === e.fasting) || {}).label || 'Unspecified' },
+  // Bucketed by count rather than which combination, since 6 items would
+  // otherwise produce up to 64 sparse (mostly n=1) categories.
+  kriya: { label: 'Kriyas & Sadhanas done', getCategory: (e) => {
+    const done = KRIYA_SADHANA_ITEMS.filter(k => e.kriyaSadhana && e.kriyaSadhana[k.key] === true).length;
+    return `${done} of ${KRIYA_SADHANA_ITEMS.length} done`;
+  } },
+  balancing: { label: 'Balancing Sadhana', getCategory: (e) => (e.kriyaSadhana && e.kriyaSadhana['suka-kriya-aum'] === true) ? 'Completed' : 'Not completed' },
+  time: { label: 'Time of day practiced', getCategory: (e) => timeBucket(e.practiceTime) },
+  menstrual: { label: 'Menstrual cycle', getCategory: (e) => {
+    if (e.sex !== 'female' || e.menstrualCycle === null || e.menstrualCycle === undefined) return null;
+    return e.menstrualCycle === true ? 'During cycle' : 'Not during cycle';
+  } },
+};
+const BASE_FACTOR_KEYS = ['moon', 'meal', 'fasting', 'kriya', 'balancing', 'time'];
+
+function factorBreakdown(entriesMap, factorKey) {
+  const factor = FACTORS[factorKey];
+  const buckets = {};
+  Object.values(entriesMap).forEach(entry => {
+    const score = entryAvgScore(entry);
+    if (score === null) return;
+    const cat = factor.getCategory(entry);
+    if (cat === null || cat === undefined) return;
+    if (!buckets[cat]) buckets[cat] = [];
+    buckets[cat].push(score);
+  });
+  return Object.entries(buckets)
+    .map(([label, scores]) => ({ label, avg: scores.reduce((a, b) => a + b, 0) / scores.length, count: scores.length }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+function generateInsightSentences(entriesMap) {
+  const sentences = [];
+  const dates = sortedDates(entriesMap);
+  if (dates.length < 3) {
+    sentences.push('Log a few more days to start seeing patterns across moon phase, meals, kriyas and timing.');
+    return sentences;
+  }
+  BASE_FACTOR_KEYS.forEach((key) => {
+    const rows = factorBreakdown(entriesMap, key).filter(r => r.count >= 2);
+    if (rows.length < 2) return;
+    const best = rows[0];
+    const worst = rows[rows.length - 1];
+    if (best.avg - worst.avg >= 0.4) {
+      sentences.push(`${FACTORS[key].label}: practice reads easiest around "${best.label}" (avg ${best.avg.toFixed(1)}/4, n=${best.count}), toughest around "${worst.label}" (avg ${worst.avg.toFixed(1)}/4, n=${worst.count}).`);
+    }
+  });
+  if (!sentences.length) {
+    sentences.push('No strong pattern yet across the factors tracked - scores are fairly even. Keep logging daily to sharpen this.');
+  }
+  return sentences;
+}
+
+// ---------- The weekly Key Message (the headline insight) ----------
+// Part 1 looks for the best time-of-day x moon-phase combination in the last
+// 7 days (falling back to the single strongest factor if combos are too
+// thin), and folds in a general note from a day that matches. Part 2 names
+// the asanas scoring lowest that week, as a concrete next action.
+function generateKeyMessage(entriesMap) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const last7Dates = sortedDates(entriesMap).filter(d => d >= addDays(todayStr, -6));
+  const entries = last7Dates.map(d => entriesMap[d]).filter(Boolean);
+
+  if (entries.length < 3) {
+    return {
+      finding: 'Log a few more days this week to unlock a personalized weekly finding.',
+      improvement: '',
+    };
+  }
+
+  const comboBuckets = {};
+  entries.forEach(e => {
+    const score = entryAvgScore(e);
+    if (score === null) return;
+    const key = `${timeBucket(e.practiceTime)}||${getMoonPhase(e.date).label}`;
+    (comboBuckets[key] = comboBuckets[key] || []).push({ score, entry: e });
+  });
+  const comboRows = Object.entries(comboBuckets)
+    .map(([key, items]) => {
+      const [time, moon] = key.split('||');
+      return { time, moon, avg: items.reduce((a, b) => a + b.score, 0) / items.length, count: items.length, items };
+    })
+    .sort((a, b) => b.avg - a.avg);
+
+  let finding;
+  const last7Map = {}; last7Dates.forEach(d => last7Map[d] = entriesMap[d]);
+
+  if (comboRows.length >= 2 && (comboRows[0].avg - comboRows[comboRows.length - 1].avg) >= 0.3) {
+    const best = comboRows[0];
+    finding = `This week, practice reads easiest doing asanas in the ${best.time.toLowerCase()} during ${best.moon} (avg ${best.avg.toFixed(1)}/4).`;
+    const noted = best.items.map(i => i.entry).find(e => e.generalNotes && e.generalNotes.trim());
+    if (noted) finding += ` You noted: "${noted.generalNotes.trim()}" on one of those days.`;
+  } else {
+    let bestFactor = null;
+    BASE_FACTOR_KEYS.forEach(key => {
+      const rows = factorBreakdown(last7Map, key).filter(r => r.count >= 1);
+      if (rows.length < 2) return;
+      const gap = rows[0].avg - rows[rows.length - 1].avg;
+      if (!bestFactor || gap > bestFactor.gap) bestFactor = { key, gap, best: rows[0], worst: rows[rows.length - 1] };
+    });
+    if (bestFactor && bestFactor.gap >= 0.3) {
+      finding = `This week, ${FACTORS[bestFactor.key].label.toLowerCase()} seems to matter most: "${bestFactor.best.label}" reads easiest (avg ${bestFactor.best.avg.toFixed(1)}/4) versus "${bestFactor.worst.label}" (avg ${bestFactor.worst.avg.toFixed(1)}/4).`;
+    } else {
+      finding = "This week's scores are fairly even across moon phase, meals, kriyas and timing - no strong single factor stands out yet.";
+    }
+  }
+
+  const asanaBuckets = {};
+  entries.forEach(e => {
+    flattenAsanaEntries(e.asanaRatings).forEach(([key, val]) => (asanaBuckets[key] = asanaBuckets[key] || []).push(val));
+  });
+  const asanaAverages = Object.entries(asanaBuckets)
+    .map(([key, vals]) => ({ key, avg: vals.reduce((a, b) => a + b, 0) / vals.length, count: vals.length }))
+    .filter(a => a.count >= 2)
+    .sort((a, b) => a.avg - b.avg);
+
+  let improvement = '';
+  if (asanaAverages.length) {
+    const weakest = asanaAverages.slice(0, Math.min(3, asanaAverages.length));
+    const names = weakest.map(a => (ASANAS.find(x => x.key === a.key) || {}).name || a.key);
+    improvement = `Give extra attention to ${names.join(', ')} - lowest-scoring this week (avg ${weakest[0].avg.toFixed(1)}/4).`;
+  }
+
+  return { finding, improvement };
+}
+
+// ---------- SVG chart rendering ----------
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => el.setAttribute(k, v));
+  return el;
+}
+
+function ensureTooltip() {
+  let tip = document.getElementById('chart-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'chart-tooltip';
+    tip.className = 'tooltip';
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+function showTip(evt, html) {
+  const tip = ensureTooltip();
+  tip.innerHTML = html;
+  tip.style.left = (evt.pageX + 12) + 'px';
+  tip.style.top = (evt.pageY - 10) + 'px';
+  tip.classList.add('show');
+}
+function hideTip() { ensureTooltip().classList.remove('show'); }
+
+// Catmull-Rom -> cubic Bezier smoothing, so the trend line reads as a
+// gentle curve rather than sharp point-to-point segments.
+function smoothPathD(pts) {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+// Hand-drawn (not sourced) up/down/flat glyphs for the trend-direction
+// indicator, in the one fixed color the arrow always uses regardless of
+// direction. A single bold, solid block-arrow polygon (notched tail,
+// triangular head) drawn once pointing right, then rotated for up/down -
+// same shape, just spun +/-90 degrees around the icon's center.
+const TREND_ARROW_COLOR = '#1E257C';
+const TREND_ARROW_PATH = 'M0,37 L58,37 L58,25 L100,50 L58,75 L58,63 L0,63 L12,50 Z';
+const TREND_ARROW_ICONS = {
+  flat: `<svg viewBox="0 0 100 100" width="28" height="28"><path d="${TREND_ARROW_PATH}" fill="${TREND_ARROW_COLOR}"/></svg>`,
+  up: `<svg viewBox="0 0 100 100" width="28" height="28"><path d="${TREND_ARROW_PATH}" fill="${TREND_ARROW_COLOR}" transform="rotate(-90 50 50)"/></svg>`,
+  down: `<svg viewBox="0 0 100 100" width="28" height="28"><path d="${TREND_ARROW_PATH}" fill="${TREND_ARROW_COLOR}" transform="rotate(90 50 50)"/></svg>`,
+};
+
+// A day-to-day trend needs some dead band around zero, or a near-flat 30
+// days flickers between "up" and "down" over trivial noise; anything within
+// +/-0.1 (on the 1-4 scale) reads as "stay put" instead.
+const TREND_FLAT_THRESHOLD = 0.1;
+
+function computeTrendSummary(points) {
+  const withData = points.filter(p => p.hasData);
+  if (withData.length < 2) return null;
+  const start = withData[0];
+  const end = withData[withData.length - 1];
+  const avg = withData.reduce((a, p) => a + p.score, 0) / withData.length;
+  const trend = end.score - start.score;
+  const direction = trend > TREND_FLAT_THRESHOLD ? 'up' : trend < -TREND_FLAT_THRESHOLD ? 'down' : 'flat';
+  return { start, end, avg, trend, direction };
+}
+
+function renderTrendArrow(arrowContainer, points) {
+  if (!arrowContainer) return;
+  const summary = computeTrendSummary(points);
+  if (!summary) { arrowContainer.innerHTML = ''; return; }
+  arrowContainer.innerHTML = TREND_ARROW_ICONS[summary.direction];
+  arrowContainer.style.cursor = 'pointer';
+  arrowContainer.onmousemove = (e) => {
+    const trendSign = summary.trend > 0 ? '+' : '';
+    showTip(e, `<strong>30-day trend: ${summary.direction === 'up' ? 'Going up' : summary.direction === 'down' ? 'Going down' : 'Holding steady'}</strong>`
+      + `<br>Start (${formatDDMMM(summary.start.date)}): ${summary.start.score.toFixed(2)} / 4`
+      + `<br>End (${formatDDMMM(summary.end.date)}): ${summary.end.score.toFixed(2)} / 4`
+      + `<br>Average: ${summary.avg.toFixed(2)} / 4`
+      + `<br>Trend: ${trendSign}${summary.trend.toFixed(2)}`);
+  };
+  arrowContainer.onmouseleave = hideTip;
+}
+
+function renderTrendChart(container, entriesMap, dateList, legendContainer, arrowContainer) {
+  container.innerHTML = '';
+  const todayStr = new Date().toISOString().slice(0, 10);
+  // Every day in range gets a point - a day with no logged data still shows
+  // up (as a grey, zero-value marker below), except today, which is simply
+  // left off rather than flagged as "no data" (it may not be over yet).
+  const points = dateList
+    .map(d => {
+      const score = dayScoreForTrend(entriesMap[d]);
+      return { date: d, score, hasData: score !== null };
+    })
+    .filter(p => p.hasData || p.date !== todayStr);
+  renderTrendArrow(arrowContainer, points);
+  if (points.length < 2) {
+    container.innerHTML = '<div class="empty-state">Log at least two days to see the trend line.</div>';
+    if (legendContainer) legendContainer.innerHTML = '';
+    return;
+  }
+  // Extra bottom padding for the 45-degree-tilted date labels.
+  const w = container.clientWidth || 600, h = 260, padL = 32, padR = 12, padT = 16, padB = 46;
+  const svg = svgEl('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}` });
+  const xStep = (w - padL - padR) / (points.length - 1 || 1);
+  // Domain is 0-4 (not 1-4) so a no-data day's 0 value has room to sit below
+  // the lowest real score, right on the x-axis.
+  const yFor = (score) => padT + (4 - score) / 4 * (h - padT - padB);
+  const xFor = (i) => padL + i * xStep;
+  const baselineY = h - padB;
+
+  [1, 2, 3, 4].forEach(v => {
+    svg.appendChild(svgEl('line', { x1: padL, x2: w - padR, y1: yFor(v), y2: yFor(v), stroke: '#e6dcd0', 'stroke-width': 1 }));
+    const t = svgEl('text', { x: 4, y: yFor(v) + 4, 'font-size': 10, fill: '#464038' });
+    t.textContent = v; svg.appendChild(t);
+  });
+
+  // More frequent x-axis ticks than before (roughly every 2-3 days on a
+  // 30-day chart, capped so labels never overlap even on a longer range),
+  // always including the first and last day.
+  const tickStep = Math.max(1, Math.round(points.length / 14));
+  const tickIdxs = new Set([0, points.length - 1]);
+  for (let i = tickStep; i < points.length - 1; i += tickStep) tickIdxs.add(i);
+  const sortedTicks = Array.from(tickIdxs).sort((a, b) => a - b);
+
+  // The line breaks across a no-data gap rather than diving down to the
+  // grey/zero marker and back up - draw one smoothed segment per run of
+  // consecutive real-data points, instead of a single path across all of
+  // them. The grey marker still sits at 0 on its own; it's just no longer
+  // connected to its neighbors by a line.
+  let run = [];
+  const runs = [];
+  points.forEach((p, i) => {
+    if (p.hasData) {
+      run.push({ x: xFor(i), y: yFor(p.score) });
+    } else if (run.length) {
+      runs.push(run);
+      run = [];
+    }
+  });
+  if (run.length) runs.push(run);
+  runs.forEach(r => {
+    svg.appendChild(svgEl('path', { d: smoothPathD(r), fill: 'none', stroke: '#E8842A', 'stroke-width': 2 }));
+  });
+
+  // Plain days and no-data markers keep this radius; New Moon/Full
+  // Moon/Ekadashi are drawn at double this (see SPECIAL_MARKER_R below) so
+  // they stand out from an ordinary day at a glance.
+  const MARKER_R = 3.5;
+  const SPECIAL_MARKER_R = MARKER_R * 2;
+  // Cap the hit radius at half the gap between points so hit areas on a
+  // dense (e.g. 45-day) chart touch rather than overlap and steal a
+  // neighboring day's hover; floor it at the largest marker's own radius so
+  // the hit area is never smaller than the (bigger) special-day markers.
+  const hitRadius = Math.max(SPECIAL_MARKER_R, Math.min(12, xStep / 2));
+
+  points.forEach((p, i) => {
+    const event = getLunarEvent(p.date);
+    const entry = entriesMap[p.date];
+    const fastValue = entry ? entry.ekadashiFast : undefined;
+    const fastLabel = fastValue != null ? ((EKADASHI_FAST_OPTIONS.find(o => o.value === fastValue) || {}).label || '-') : '-';
+    // A voluntary fast (Half/Half Fast chosen on a day that ISN'T Ekadashi)
+    // gets its own ring marker; on Ekadashi the fast answer is already
+    // called out next to the "Ekadashi" tag itself, so it isn't duplicated
+    // here.
+    const isVoluntaryFast = !event.isEkadashi && (fastValue === 'half' || fastValue === 'full');
+    const cx = xFor(i), cy = yFor(p.hasData ? p.score : 0);
+    let marker, usedR;
+    if (!p.hasData) {
+      // No-data (past days only, see the filter above) always reads as a
+      // plain grey marker, regardless of what lunar event that date is -
+      // there's no score to color-code, so lunar styling doesn't apply.
+      usedR = MARKER_R;
+      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#d7d2c9' });
+    } else if (event.isFullMoon) {
+      // A pure white fill with no border, as specified, is literally
+      // invisible against this chart's white/cream background - a plain
+      // white circle on white leaves an unmarked gap in the line with no
+      // visual cue at all. Added a hairline neutral border (not a color,
+      // just enough to trace the circle's edge) purely so the marker is
+      // findable; the fill itself stays exactly white.
+      usedR = SPECIAL_MARKER_R;
+      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#ffffff', stroke: '#d8d2c5', 'stroke-width': 1 });
+    } else if (event.isNewMoon) {
+      // Fill and ring would otherwise be the same color now that the palette
+      // has one ink tone - a white ring keeps this visually distinct from a
+      // plain point (by size) and from the Full Moon marker (by fill).
+      usedR = SPECIAL_MARKER_R;
+      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#464038', stroke: '#fff', 'stroke-width': 2 });
+    } else if (event.isEkadashi) {
+      usedR = SPECIAL_MARKER_R;
+      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#00FDFF' });
+    } else {
+      usedR = MARKER_R;
+      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#AF4D30' });
+    }
+    svg.appendChild(marker);
+
+    if (isVoluntaryFast) {
+      // A thin black ring drawn outside the marker itself - doesn't replace
+      // or recolor the marker, just flags "a fast was recorded this day" as
+      // an independent fact layered on top.
+      svg.appendChild(svgEl('circle', { cx, cy, r: usedR + 3, fill: 'none', stroke: '#1a1a1a', 'stroke-width': 1.2 }));
+    }
+
+    // The visible marker is small - too small to reliably land a real mouse
+    // cursor on, especially with 30-45 points sharing one chart width. A
+    // larger invisible hit target around each point makes hover actually
+    // usable; the small dot stays purely decorative.
+    const hitArea = svgEl('circle', { cx, cy, r: hitRadius, fill: 'transparent' });
+    hitArea.style.cursor = 'pointer';
+    hitArea.addEventListener('mousemove', (e) => {
+      const tags = [
+        event.isFullMoon && 'Full Moon',
+        event.isNewMoon && 'New Moon',
+        event.isEkadashi && `Ekadashi (${fastLabel})`,
+      ].filter(Boolean).join(' · ');
+      const dateLabel = formatDDMMM(p.date) + (isVoluntaryFast ? ` (${fastLabel})` : '');
+      if (!p.hasData) {
+        showTip(e, `<strong>${dateLabel}</strong>${tags ? ' · ' + tags : ''}<br>No data`);
+        return;
+      }
+      const top3 = topAsanasForEntry(entry, 3);
+      const bottom3 = bottomAsanasForEntry(entry, 3);
+      showTip(e, `<strong>${dateLabel}</strong>${tags ? ' · ' + tags : ''}<br>Score: ${p.score.toFixed(2)} / 4`
+        + `<br>Top asanas: ${top3.map(a => `${a.name} (${a.value})`).join(', ') || '-'}`
+        + `<br>Low asanas: ${bottom3.map(a => `${a.name} (${a.value})`).join(', ') || '-'}`);
+    });
+    hitArea.addEventListener('mouseleave', hideTip);
+    svg.appendChild(hitArea);
+  });
+
+  // Date labels tilted 45 degrees so more of them fit without overlapping.
+  sortedTicks.forEach(i => {
+    const t = svgEl('text', {
+      x: xFor(i), y: baselineY + 14, 'font-size': 10, fill: '#464038',
+      'text-anchor': 'end', transform: `rotate(-45 ${xFor(i)} ${baselineY + 14})`,
+    });
+    t.textContent = formatDDMMM(points[i].date);
+    svg.appendChild(t);
+  });
+
+  container.appendChild(svg);
+
+  if (legendContainer) {
+    legendContainer.innerHTML = `
+      <span><span class="legend-dot" style="background:#464038;border-color:#464038"></span>New Moon</span>
+      <span><span class="legend-dot" style="background:#ffffff;border-color:#c9c2b4"></span>Full Moon</span>
+      <span><span class="legend-dot" style="background:#00FDFF;border-color:#00FDFF"></span>Ekadashi</span>
+      <span><span class="legend-dot" style="background:transparent;border-color:#1a1a1a"></span>Fasting</span>
+    `;
+  }
+}
+
+function renderFactorChart(container, rows) {
+  container.innerHTML = '';
+  if (!rows.length) {
+    container.innerHTML = '<div class="empty-state">Not enough data for this factor yet.</div>';
+    return;
+  }
+  const w = container.clientWidth || 440;
+  const rowH = 28, padL = 10, padR = 46, labelW = 150, padT = 8;
+  const h = rows.length * rowH + padT * 2;
+  const svg = svgEl('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}` });
+  const barMax = w - padL - padR - labelW;
+
+  rows.forEach((row, i) => {
+    const y = padT + i * rowH;
+    const label = svgEl('text', { x: padL, y: y + rowH / 2 + 4, 'font-size': 11.5, fill: '#464038' });
+    label.textContent = row.label.length > 24 ? row.label.slice(0, 23) + '…' : row.label;
+    svg.appendChild(label);
+
+    const barW = Math.max(4, (row.avg / 4) * barMax);
+    const rect = svgEl('rect', {
+      x: padL + labelW, y: y + 4, width: barW, height: rowH - 12, rx: 4,
+      fill: rampColor(row.avg),
+    });
+    rect.style.cursor = 'pointer';
+    rect.addEventListener('mousemove', (e) => showTip(e, `<strong>${row.label}</strong><br>avg ${row.avg.toFixed(2)} / 4 · n=${row.count}`));
+    rect.addEventListener('mouseleave', hideTip);
+    svg.appendChild(rect);
+
+    const valText = svgEl('text', { x: padL + labelW + barW + 6, y: y + rowH / 2 + 4, 'font-size': 10.5, fill: '#464038' });
+    valText.textContent = `${row.avg.toFixed(1)} (n=${row.count})`;
+    svg.appendChild(valText);
+  });
+
+  container.appendChild(svg);
+}
+
+function renderFactorChartsGrid(container, entriesMap) {
+  container.innerHTML = '';
+  const hasFemale = Object.values(entriesMap).some(e => e.sex === 'female');
+  const keys = hasFemale ? BASE_FACTOR_KEYS.concat(['menstrual']) : BASE_FACTOR_KEYS;
+
+  keys.forEach(key => {
+    const cell = document.createElement('div');
+    cell.className = 'factor-cell';
+    cell.innerHTML = `<h3>${FACTORS[key].label}</h3>`;
+    const chartDiv = document.createElement('div');
+    cell.appendChild(chartDiv);
+
+    if (key === 'moon') {
+      const strip = document.createElement('div');
+      strip.className = 'moon-strip';
+      strip.innerHTML = MOON_PHASES.map(p => `<div class="moon-strip-item">${moonIconSVG(p.key, 26)}<span>${p.label}</span></div>`).join('');
+      cell.appendChild(strip);
+    }
+
+    container.appendChild(cell);
+    renderFactorChart(chartDiv, factorBreakdown(entriesMap, key));
+  });
+}
+
+// ---------- 24 per-asana mini charts (last 7 days) ----------
+// Bars are deliberately narrow (~40% of their slot) with room around them,
+// so both the bar and the date label underneath stay legible at this small
+// size. Color always exactly matches one of the four rating smileys (see
+// discreteAsanaColor above) rather than a blended gradient.
+function roundedTopPath(x, y, width, height, radius) {
+  const r = Math.max(0, Math.min(radius, width / 2, height));
+  return `M${x},${y + height} L${x},${y + r} Q${x},${y} ${x + r},${y} `
+    + `L${x + width - r},${y} Q${x + width},${y} ${x + width},${y + r} L${x + width},${y + height} Z`;
+}
+
+function renderMiniBarChart(container, points, todayStr) {
+  const w = 220, h = 84, padL = 8, padR = 8, padT = 8, padB = 16;
+  const slotW = (w - padL - padR) / points.length;
+  const barW = slotW * 0.42;
+  const noDataHeight = 10;
+  const baselineY = h - padB;
+  const yFor = (v) => padT + (4 - v) / 3 * (baselineY - padT);
+  const svg = svgEl('svg', { width: '100%', height: h, viewBox: `0 0 ${w} ${h}` });
+
+  // Thin x-axis line, drawn once under every bar.
+  svg.appendChild(svgEl('line', { x1: padL, x2: w - padR, y1: baselineY, y2: baselineY, stroke: '#c9c2b4', 'stroke-width': 1 }));
+
+  points.forEach((p, i) => {
+    const slotCenter = padL + i * slotW + slotW / 2;
+    const x = slotCenter - barW / 2;
+    const isToday = p.date === todayStr;
+
+    if (p.value !== undefined && p.value !== null) {
+      const yTop = yFor(p.value);
+      const barH = Math.max(2, baselineY - yTop);
+      const bar = svgEl('path', { d: roundedTopPath(x, yTop, barW, barH, barW / 2), fill: discreteAsanaColor(p.value) });
+      bar.style.cursor = 'pointer';
+      bar.addEventListener('mousemove', (e) => showTip(e, `<strong>${formatDDMM(p.date)}</strong><br>${p.value.toFixed(1)} / 4`));
+      bar.addEventListener('mouseleave', hideTip);
+      svg.appendChild(bar);
+    } else if (!isToday) {
+      // Grey "no data" only applies to past days that were skipped - today
+      // just hasn't happened yet, so it's left blank rather than flagged.
+      const bar = svgEl('path', { d: roundedTopPath(x, baselineY - noDataHeight, barW, noDataHeight, barW / 2), fill: '#d7d2c9' });
+      bar.style.cursor = 'pointer';
+      bar.addEventListener('mousemove', (e) => showTip(e, `<strong>${formatDDMM(p.date)}</strong><br>No data`));
+      bar.addEventListener('mouseleave', hideTip);
+      svg.appendChild(bar);
+    }
+
+    const label = svgEl('text', { x: slotCenter, y: h - 4, 'font-size': 9, fill: '#464038', 'text-anchor': 'middle' });
+    label.textContent = formatDDMM(p.date);
+    svg.appendChild(label);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+}
+
+// Overall = Morning+Evening averaged per day (asanaValueForDay); Morning and
+// Evening tabs each show that single session's own rating only, which is
+// always a whole number - see asanaValueForDayMode.
+let miniChartMode = 'overall';
+const MINI_CHART_TABS = [
+  { mode: 'overall', label: 'Overall' },
+  { mode: 'morning', label: 'Morning' },
+  { mode: 'evening', label: 'Evening' },
+];
+
+function renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) last7.push(addDays(todayStr, -i));
+
+  tabsContainer.innerHTML = MINI_CHART_TABS.map(t =>
+    `<button type="button" class="mini-chart-tab-btn${t.mode === miniChartMode ? ' active' : ''}" data-mode="${t.mode}">${t.label}</button>`
+  ).join('');
+  tabsContainer.querySelectorAll('.mini-chart-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.mode === miniChartMode) return;
+      miniChartMode = btn.dataset.mode;
+      renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap);
+    });
+  });
+
+  gridContainer.innerHTML = '';
+  ASANAS.forEach(asana => {
+    const card = document.createElement('div');
+    card.className = 'mini-chart-card';
+    card.innerHTML = `<div class="mini-chart-title">${MINI_CHART_ICON}<span>${asana.name}</span></div>`;
+    const chartDiv = document.createElement('div');
+    card.appendChild(chartDiv);
+    gridContainer.appendChild(card);
+    renderMiniBarChart(chartDiv, last7.map(d => ({ date: d, value: asanaValueForDayMode(entriesMap[d], asana.key, miniChartMode) })), todayStr);
+  });
+}

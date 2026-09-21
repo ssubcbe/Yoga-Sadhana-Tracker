@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yoga Sadhana Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23E8842A%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=46">
+</head>
+<body>
+  <header class="app-header">
+    <h1>Yoga Sadhana Tracker</h1>
+    <div class="user-chip">
+      <span id="user-name"></span>
+      <button id="sign-out-btn">Sign out</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="entry">Daily Entry</button>
+    <button class="tab-btn" data-tab="insights">Insights</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </nav>
+
+  <main>
+    <section id="tab-entry" class="tab-panel active">
+      <div id="entry-form-root"></div>
+    </section>
+    <section id="tab-insights" class="tab-panel">
+      <div id="insights-root"></div>
+    </section>
+    <section id="tab-settings" class="tab-panel">
+      <div id="settings-root"></div>
+    </section>
+  </main>
+
+  <script src="js/config.js?v=46"></script>
+  <script src="js/storage.js?v=46"></script>
+  <script src="js/moon.js?v=46"></script>
+  <script src="js/icons.js?v=46"></script>
+  <script src="js/poses.js?v=46"></script>
+  <script src="js/insights.js?v=46"></script>
+  <script src="js/csv.js?v=46"></script>
+  <script src="js/seed.js?v=46"></script>
+  <script src="js/app.js?v=46"></script>
+</body>
+</html>

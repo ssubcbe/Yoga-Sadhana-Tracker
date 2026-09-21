@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yoga Sadhana Tracker - Sign In</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23E8842A%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=46">
+</head>
+<body class="signin-page">
+  <div class="signin-card">
+    <div class="brand-mark">
+      <svg viewBox="0 0 100 100" width="56" height="56"><circle cx="50" cy="50" r="46" fill="none" stroke="#464038" stroke-width="4"/><circle cx="50" cy="50" r="30" fill="none" stroke="#E8842A" stroke-width="4"/></svg>
+    </div>
+    <h1>Yoga Sadhana Tracker</h1>
+    <p class="subtitle">Log today's practice. See what's shaping it.</p>
+
+    <div class="sso-buttons">
+      <button id="google-btn" class="sso-btn sso-google">Sign in with Google</button>
+      <button id="microsoft-btn" class="sso-btn sso-microsoft">Sign in with Microsoft</button>
+      <button id="apple-btn" class="sso-btn sso-apple">Sign in with Apple</button>
+    </div>
+    <p id="sso-note" class="sso-note"></p>
+
+    <div class="divider"><span>or, to try it right now</span></div>
+
+    <form id="demo-form" class="demo-form">
+      <label for="demo-name">Name</label>
+      <input id="demo-name" type="text" placeholder="Your name" required>
+      <label for="demo-email">Email</label>
+      <input id="demo-email" type="email" placeholder="you@example.com" required>
+      <button type="submit" class="primary-btn">Continue with Demo Account</button>
+    </form>
+    <p class="privacy-note">We only store your name and email, on this device, to keep your daily entries separate from anyone else testing this prototype.</p>
+  </div>
+
+  <script src="js/config.js?v=46"></script>
+  <script src="js/storage.js?v=46"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onerror="console.warn('Google SDK failed to load (offline?)')"></script>
+  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" onerror="console.warn('MSAL SDK failed to load (offline?)')"></script>
+  <script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" onerror="console.warn('Apple SDK failed to load (offline?)')"></script>
+  <script src="js/auth.js?v=46"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# In case tooling gets added later (none is used today - no build step)
+node_modules/

@@ -1,0 +1,435 @@
+:root {
+  --maroon: #464038;    /* app header / heading ink */
+  --saffron: #E8842A;
+  --cream: #F7F2EA;
+  --ink: #464038;        /* base text color everywhere except the app header */
+  --ink-muted: #464038;  /* hierarchy for secondary text comes from font-weight, not a lighter color */
+  --header-text: #E4DED4;
+  --surface: #FFFFFF;
+  --border: #e6dcd0;
+  --good: #3f7a4e;
+  --select-blue: #1E257C; /* same blue "Save today's entry" turns on hover - used for selected toggle buttons */
+  --pill-bg: #fbeee0; /* readonly-pill backdrop, e.g. "Moon: X" - also used to highlight the matching moon image */
+  /* Inter - open (SIL OFL), loaded from Google Fonts in index.html/app.html.
+     System sans is the fallback if the font request is ever blocked. */
+  --font: "Inter", "Segoe UI", "Segoe UI Web", Tahoma, Geneva, Verdana, sans-serif;
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+  background: var(--cream);
+}
+
+/* ---------- Sign-in page ---------- */
+body.signin-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.signin-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 40px 36px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 36px rgba(70, 64, 56, 0.10);
+  text-align: center;
+}
+.brand-mark { margin-bottom: 8px; }
+.signin-card h1 { font-size: 26px; margin: 4px 0 4px; color: var(--maroon); font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.04em; }
+.subtitle { color: var(--ink-muted); margin: 0 0 24px; font-size: 15px; font-weight: var(--weight-light); }
+
+.sso-buttons { display: flex; flex-direction: column; gap: 10px; }
+.sso-btn {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: var(--weight-regular);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sso-btn:hover { background: #faf5ee; }
+.sso-note { font-size: 13px; color: var(--ink-muted); min-height: 18px; margin: 10px 0 0; font-weight: var(--weight-light); }
+
+.divider { display: flex; align-items: center; margin: 22px 0 16px; color: var(--ink-muted); font-size: 13px; font-weight: var(--weight-light); }
+.divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--border); }
+.divider span { padding: 0 10px; }
+
+.demo-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.demo-form label { font-size: 13px; color: var(--ink-muted); margin-bottom: -6px; font-weight: var(--weight-light); }
+.demo-form input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: var(--weight-regular);
+}
+.primary-btn {
+  margin-top: 6px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--saffron);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.primary-btn:hover { background: #d4741f; }
+
+.action-btn {
+  padding: 7px 16px;
+  border-radius: 2px;
+  border: none;
+  background: #F37021;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: var(--weight-regular);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.action-btn:hover { background: #1E257C; }
+.privacy-note { font-size: 12px; color: var(--ink-muted); margin-top: 18px; line-height: 1.5; font-weight: var(--weight-light); }
+
+/* ---------- App shell ---------- */
+.app-header {
+  background: var(--maroon);
+  color: var(--header-text);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.app-header h1 { font-size: 18px; margin: 0; font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.04em; }
+.app-header .user-chip { font-size: 13px; opacity: 0.9; display: flex; align-items: center; gap: 10px; font-weight: var(--weight-light); }
+.app-header button { font-family: var(--font); background: transparent; border: 1px solid rgba(228,222,212,0.5); color: var(--header-text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: var(--weight-regular); }
+.app-header button:hover { background: rgba(228,222,212,0.12); }
+
+.tabs { display: flex; gap: 4px; background: #fff; border-bottom: 1px solid var(--border); padding: 0 24px; }
+.tab-btn {
+  padding: 14px 18px;
+  border: none;
+  background: none;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: var(--weight-light);
+  color: var(--ink-muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.tab-btn.active { color: var(--maroon); border-bottom-color: var(--saffron); font-weight: var(--weight-semibold); }
+
+.tab-panel { display: none; padding: 24px; max-width: 980px; margin: 0 auto; }
+.tab-panel.active { display: block; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.card h2 { margin-top: 0; font-size: 16px; color: var(--maroon); font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.03em; }
+/* Daily Entry panel headings specifically are bold, unlike the lighter-weight
+   headings used on the other tabs. */
+#tab-entry .card h2 { font-weight: var(--weight-bold); }
+.card h3 { font-size: 14px; color: var(--ink); margin: 0 0 10px; font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* Date gets the flexible space; the sex picker/avatar sits in a fixed-width
+   column on the right so its width never jumps between the "pick" and
+   "locked" states. */
+.wellbeing-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+.wellbeing-date-col { flex: 1 1 240px; }
+.wellbeing-sex-col { flex: 0 0 auto; width: 190px; text-align: center; }
+@media (max-width: 640px) {
+  .wellbeing-top { flex-direction: column; }
+  .wellbeing-sex-col { width: 100%; }
+}
+
+.sex-picker, .sex-locked { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sex-picker > label, .sex-locked-label { font-size: 13px; color: var(--ink-muted); font-weight: var(--weight-light); }
+.avatar-choice-row { display: flex; gap: 14px; justify-content: center; margin: 4px 0; }
+.avatar-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer; border-radius: 8px; padding: 6px 10px;
+  font-family: var(--font); font-size: 11px; color: var(--ink); font-weight: var(--weight-regular);
+}
+.avatar-btn:hover { background: #fbeee0; }
+.avatar-frame.locked { display: inline-flex; background: #ece8e3; border-radius: 10px; padding: 8px; margin-bottom: 2px; }
+.sex-locked-label { margin-top: -2px; }
+
+.required-mark { color: #E5352B; font-weight: var(--weight-semibold); }
+.yesno-row { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
+.yesno-btn {
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--saffron);
+  background: var(--saffron);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: var(--weight-regular);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.yesno-btn:hover { background: var(--select-blue); border-color: var(--select-blue); }
+.yesno-btn.selected { background: var(--select-blue); color: #fff; border-color: var(--select-blue); font-weight: var(--weight-semibold); }
+
+.ekadashi-field { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.ekadashi-word { font-weight: var(--weight-bold); }
+.fast-choice-row { display: flex; flex-direction: row; gap: 10px; margin-top: 6px; }
+.fast-btn {
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: 1px solid #F37021;
+  background: #F37021;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: var(--weight-regular);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.fast-btn:hover { background: #1E257C; border-color: #1E257C; }
+.fast-btn.selected { background: var(--select-blue); color: #fff; border-color: var(--select-blue); font-weight: var(--weight-semibold); }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 13px; color: var(--ink-muted); font-weight: var(--weight-light); }
+.field input, .field select, .field textarea {
+  padding: 9px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+}
+.readonly-pill {
+  display: inline-block;
+  background: var(--pill-bg);
+  color: var(--maroon);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+}
+.today-row { display: flex; align-items: center; gap: 12px; min-height: 39px; }
+.or-text { font-size: 12px; color: var(--ink-muted); font-weight: var(--weight-light); }
+.moon-pill { margin-top: 2px; }
+.moon-stage-row { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 6px; margin-top: 10px; }
+.moon-stage-item {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.moon-stage-item.current { background: var(--pill-bg); border-color: var(--pill-bg); }
+
+/* Each Morning/Evening box carries its own tab label (click to switch which
+   pose grid shows) plus its own "Showered before Asanas?" answer - both
+   boxes' shower answers are visible and editable at once. */
+.session-tabs { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; align-items: stretch; }
+.session-tab {
+  flex: 1;
+  padding: 12px 16px;
+  border-right: 1px solid var(--border);
+  background: #fff;
+  opacity: 0.55;
+  transition: background 0.15s, opacity 0.15s;
+}
+.session-tab:last-child { border-right: none; }
+.session-tab.active { background: var(--border); opacity: 1; }
+.session-tab-label {
+  color: var(--ink-muted);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.session-tab.active .session-tab-label { color: var(--ink); font-weight: var(--weight-semibold); }
+.session-shower-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.session-shower-label { font-size: 12px; color: var(--ink-muted); font-weight: var(--weight-light); }
+
+.pose-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.pose-tile {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  background: #fffdfa;
+  box-shadow: none;
+  transition: box-shadow 0.2s ease;
+}
+.pose-tile.rated { box-shadow: 0 6px 18px rgba(70, 64, 56, 0.22); }
+.pose-tile > svg { width: 48px; height: 48px; }
+.pose-tile .pose-name { font-size: 12.5px; margin: 6px 0 8px; min-height: 32px; display: flex; align-items: center; justify-content: center; font-weight: var(--weight-regular); text-transform: uppercase; letter-spacing: 0.02em; }
+
+.smiley-row { display: flex; gap: 6px; justify-content: center; }
+.smiley-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.smiley-btn svg { width: 100%; height: 100%; display: block; }
+.smiley-btn:hover { opacity: 0.85; transform: scale(1.1); }
+.smiley-btn.selected { opacity: 1; transform: scale(1.15); box-shadow: 0 0 0 2px #464038; }
+
+.kriya-sadhana-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 720px) { .kriya-sadhana-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .kriya-sadhana-grid { grid-template-columns: 1fr; } }
+.kriya-sadhana-desc { font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); line-height: 1.4; margin: 0 0 10px; min-height: 28px; }
+
+.save-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+.insight-headline { font-size: 22px; font-weight: var(--weight-semibold); color: var(--maroon); margin: 4px 0 2px; }
+.insight-sub { color: var(--ink-muted); font-size: 13px; margin: 10px 0 0; font-weight: var(--weight-light); }
+.card h2.trend-title { font-weight: var(--weight-bold); }
+.trend-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.trend-header h2 { margin-bottom: 0; }
+.trend-arrow { display: inline-flex; }
+.trend-arrow svg { display: block; }
+
+.key-message-card { background: linear-gradient(135deg, #fdf3e7, #fff); border: 1px solid var(--saffron); }
+.key-message-finding { font-size: 15px; line-height: 1.6; margin: 4px 0 10px; color: var(--ink); font-weight: var(--weight-regular); }
+.key-message-improvement { font-size: 14px; line-height: 1.6; margin: 0; color: var(--maroon); font-weight: var(--weight-semibold); }
+
+.legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-right: 5px; vertical-align: middle; }
+.legend-diamond { border-radius: 2px; transform: rotate(45deg); display: inline-block; width: 9px; height: 9px; margin-right: 7px; }
+
+.factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .factor-grid { grid-template-columns: 1fr; } }
+.factor-cell { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #fffdfa; }
+.factor-cell h3 { font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.03em; }
+
+.moon-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.moon-strip-item { display: flex; flex-direction: column; align-items: center; width: 68px; text-align: center; }
+.moon-strip-item span { font-size: 9.5px; color: var(--ink-muted); margin-top: 3px; line-height: 1.2; font-weight: var(--weight-light); }
+
+.mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.mini-chart-tab-btn {
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: var(--weight-regular);
+  color: var(--ink-muted);
+  background: #fff;
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 7px 16px;
+  cursor: pointer;
+}
+.mini-chart-tab-btn:last-child { border-right: none; }
+.mini-chart-tab-btn.active { background: var(--border); color: var(--ink); font-weight: var(--weight-semibold); }
+
+/* Fixed 4 columns so 24 cards form the 6x4 grid used elsewhere (e.g. the
+   pose grid on Daily Entry), collapsing to fewer columns on narrow screens. */
+.mini-chart-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 860px) { .mini-chart-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .mini-chart-grid { grid-template-columns: 1fr; } }
+.mini-chart-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px;
+  background: #fffdfa;
+  height: 128px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.mini-chart-title { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: var(--weight-regular); color: var(--maroon); margin-bottom: 3px; min-height: 20px; text-transform: uppercase; letter-spacing: 0.02em; }
+.mini-chart-title svg { flex-shrink: 0; }
+.mini-chart-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat-tile { background: #fffdfa; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+.stat-tile .stat-value { font-size: 24px; font-weight: var(--weight-semibold); color: var(--saffron); }
+.stat-tile .stat-label { font-size: 12px; color: var(--ink-muted); margin-top: 4px; font-weight: var(--weight-light); }
+
+.legend-row { display: flex; gap: 14px; font-size: 12px; color: var(--ink-muted); margin-top: 6px; flex-wrap: wrap; font-weight: var(--weight-light); }
+.legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+.insight-text-list { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.7; font-weight: var(--weight-regular); }
+
+/* SVG charts (trend line, factor bars, mini asana charts) are built with JS
+   and don't inherit page font settings by default - apply the same family here. */
+#trend-chart svg text, .factor-cell svg text, .mini-chart-card svg text {
+  font-family: var(--font);
+}
+
+.tooltip {
+  position: absolute;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: var(--weight-regular);
+  padding: 6px 9px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.05s;
+  white-space: normal;
+  max-width: 260px;
+  line-height: 1.5;
+  z-index: 10;
+}
+.tooltip.show { opacity: 1; }
+
+.empty-state { color: var(--ink-muted); font-size: 14px; padding: 20px 0; text-align: center; font-weight: var(--weight-light); }
+
+.settings-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; flex-wrap: wrap; }
+.link-btn { background: none; border: none; color: var(--maroon); text-decoration: underline; cursor: pointer; font-family: var(--font); font-size: 13px; padding: 0; font-weight: var(--weight-regular); }
+.secondary-btn {
+  padding: 9px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--maroon);
+  background: #fff;
+  color: var(--maroon);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+.secondary-btn:hover { background: #fbeee0; }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--good);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
