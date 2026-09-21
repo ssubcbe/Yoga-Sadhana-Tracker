@@ -33,6 +33,7 @@ function csvToEntries(text) {
 
   const mealByLabel = {}; MEAL_STATUS_OPTIONS.forEach(o => mealByLabel[o.label] = o.value);
   const fastByLabel = {}; FASTING_OPTIONS.forEach(o => fastByLabel[o.label] = o.value);
+  const ekadashiFastByLabel = {}; EKADASHI_FAST_OPTIONS.forEach(o => ekadashiFastByLabel[o.label] = o.value);
   const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
   const entries = {};
@@ -62,6 +63,8 @@ function csvToEntries(text) {
 
     const mealLabel = idx('Meal Status') > -1 ? cols[idx('Meal Status')] : '';
     const fastLabel = idx('Recent Fasting') > -1 ? cols[idx('Recent Fasting')] : '';
+    const ekadashiFastLabel = idx('Ekadashi Fast') > -1 ? cols[idx('Ekadashi Fast')] : '';
+    const ekadashiFast = ekadashiFastByLabel[ekadashiFastLabel] || 'none';
     const sexLabel = (idx('Sex') > -1 && (cols[idx('Sex')] || '').trim().toLowerCase()) || '';
     const sex = (SEX_OPTIONS.find(o => o.label.toLowerCase() === sexLabel || o.value === sexLabel) || SEX_OPTIONS[0]).value;
     const menstrualCol = idx('Menstrual Cycle');
@@ -87,6 +90,7 @@ function csvToEntries(text) {
       mealStatus: mealByLabel[mealLabel] || MEAL_STATUS_OPTIONS[0].value,
       mealTime: (idx('Time of Last Meal') > -1 && cols[idx('Time of Last Meal')]) || '',
       fasting: fastByLabel[fastLabel] || 'none',
+      ekadashiFast,
       sex,
       menstrualCycle,
       kriyaSadhana,
