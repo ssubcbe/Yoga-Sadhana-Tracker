@@ -334,7 +334,7 @@ body.signin-page {
 /* Trikala Sandhya box: a compact row label (matches Moon Phase's row-label
    size) above each session's pair of pies, centered and evenly spaced, no
    legend - the count already sits inside each slice. */
-.sun-row-label { font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--maroon); text-transform: uppercase; letter-spacing: 0.02em; margin: 12px 0 6px; }
+.sun-row-label { font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--maroon); text-transform: uppercase; letter-spacing: 0.02em; margin: 12px 0 6px; text-align: center; }
 .sun-row-label:first-child { margin-top: 2px; }
 .sun-range-row { display: flex; justify-content: space-evenly; }
 .sun-pie-col { display: flex; flex-direction: column; align-items: center; }
