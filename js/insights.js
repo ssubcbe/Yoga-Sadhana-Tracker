@@ -585,63 +585,160 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
   }
 }
 
-function renderFactorChart(container, rows) {
-  container.innerHTML = '';
-  if (!rows.length) {
-    container.innerHTML = '<div class="empty-state">Not enough data for this factor yet.</div>';
-    return;
-  }
-  const w = container.clientWidth || 440;
-  const rowH = 28, padL = 10, padR = 46, labelW = 150, padT = 8;
-  const h = rows.length * rowH + padT * 2;
-  const svg = svgEl('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}` });
-  const barMax = w - padL - padR - labelW;
+// ---------- "What's shaping your practice": 6 fixed topics, 3x2 grid ----------
+// A fixed topic list (not derived from FACTORS/BASE_FACTOR_KEYS - those stay
+// as-is, still used by the Key Message and "More findings" cards elsewhere).
+// Only Moon Phase is fully built out for now; the rest are placeholders to
+// fill in next, per topic, once each one's exact breakdown is decided.
+const SHAPING_TOPICS = [
+  { key: 'moon', title: 'Moon Phase' },
+  { key: 'sun', title: 'Sun (Morning / Evening)' },
+  { key: 'fasting', title: 'Fasting (After Fasting)' },
+  { key: 'showering', title: 'Showering' },
+  { key: 'kriyas', title: 'Kriyas and Sadhanas' },
+  { key: 'menstrual', title: 'Menstrual Cycle' },
+];
+const MOON_BAR_COLOR = '#F37021';
+const SHAPING_WINDOW_DAYS = 30;
 
-  rows.forEach((row, i) => {
-    const y = padT + i * rowH;
-    const label = svgEl('text', { x: padL, y: y + rowH / 2 + 4, 'font-size': 11.5, fill: '#464038' });
-    label.textContent = row.label.length > 24 ? row.label.slice(0, 23) + '…' : row.label;
-    svg.appendChild(label);
-
-    const barW = Math.max(4, (row.avg / 4) * barMax);
-    const rect = svgEl('rect', {
-      x: padL + labelW, y: y + 4, width: barW, height: rowH - 12, rx: 4,
-      fill: rampColor(row.avg),
-    });
-    rect.style.cursor = 'pointer';
-    rect.addEventListener('mousemove', (e) => showTip(e, `<strong>${row.label}</strong><br>avg ${row.avg.toFixed(2)} / 4 · n=${row.count}`));
-    rect.addEventListener('mouseleave', hideTip);
-    svg.appendChild(rect);
-
-    const valText = svgEl('text', { x: padL + labelW + barW + 6, y: y + rowH / 2 + 4, 'font-size': 10.5, fill: '#464038' });
-    valText.textContent = `${row.avg.toFixed(1)} (n=${row.count})`;
-    svg.appendChild(valText);
-  });
-
-  container.appendChild(svg);
+function lastNDaysEntries(entriesMap, n) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const cutoff = addDays(todayStr, -(n - 1));
+  return Object.values(entriesMap).filter(e => e.date >= cutoff && e.date <= todayStr);
 }
 
-function renderFactorChartsGrid(container, entriesMap) {
-  container.innerHTML = '';
-  const hasFemale = Object.values(entriesMap).some(e => e.sex === 'female');
-  const keys = hasFemale ? BASE_FACTOR_KEYS.concat(['menstrual']) : BASE_FACTOR_KEYS;
+// One bucket per MOON_PHASES entry (fixed chronological order, not sorted by
+// score), each with its own avg score plus the top/bottom 3 asanas rated
+// during days in that phase - all scoped to the last 30 days only.
+function computeMoonPhaseRows(entries) {
+  const buckets = {};
+  MOON_PHASES.forEach(p => { buckets[p.key] = { scores: [], asanaTotals: {} }; });
+  entries.forEach(entry => {
+    const score = entryAvgScore(entry);
+    if (score === null) return;
+    const b = buckets[getMoonPhase(entry.date).key];
+    b.scores.push(score);
+    flattenAsanaEntries(entry.asanaRatings).forEach(([key, val]) => {
+      const t = b.asanaTotals[key] || (b.asanaTotals[key] = { sum: 0, count: 0 });
+      t.sum += val; t.count += 1;
+    });
+  });
+  return MOON_PHASES.map(p => {
+    const b = buckets[p.key];
+    const avg = b.scores.length ? b.scores.reduce((a, c) => a + c, 0) / b.scores.length : null;
+    const asanaAverages = Object.entries(b.asanaTotals).map(([key, t]) => ({
+      name: (ASANAS.find(a => a.key === key) || {}).name || key,
+      avg: t.sum / t.count,
+    })).sort((a, b2) => b2.avg - a.avg);
+    return {
+      key: p.key, label: p.label, avg, count: b.scores.length,
+      top3: asanaAverages.slice(0, 3),
+      bottom3: asanaAverages.slice(-3).reverse(),
+    };
+  });
+}
 
-  keys.forEach(key => {
-    const cell = document.createElement('div');
-    cell.className = 'factor-cell';
-    cell.innerHTML = `<h3>${FACTORS[key].label}</h3>`;
-    const chartDiv = document.createElement('div');
-    cell.appendChild(chartDiv);
+// Rounded-right-corner bar (square left edge flush against the axis line),
+// mirroring roundedTopPath's approach but for a horizontal bar.
+function roundedRightPath(x, y, width, height, radius) {
+  const r = Math.max(0, Math.min(radius, width, height / 2));
+  return `M${x},${y} L${x + width - r},${y} Q${x + width},${y} ${x + width},${y + r} `
+    + `L${x + width},${y + height - r} Q${x + width},${y + height} ${x + width - r},${y + height} `
+    + `L${x},${y + height} Z`;
+}
 
-    if (key === 'moon') {
-      const strip = document.createElement('div');
-      strip.className = 'moon-strip';
-      strip.innerHTML = MOON_PHASES.map(p => `<div class="moon-strip-item">${moonIconSVG(p.key, 26)}<span>${p.label}</span></div>`).join('');
-      cell.appendChild(strip);
+function renderMoonPhaseChart(container, entries) {
+  const rows = computeMoonPhaseRows(entries);
+  const withData = rows.filter(r => r.avg !== null);
+  if (!withData.length) {
+    container.innerHTML = '<div class="empty-state">Not enough data in the last 30 days yet.</div>';
+    return;
+  }
+
+  // Domain is zoomed to the data's own range (not the full 1-4 scale), so
+  // small real differences between phases stay visually readable - padded
+  // 0.1 below the lowest value, rounded up to the ceiling 0.1 above.
+  const vals = withData.map(r => r.avg);
+  let domainMin = Math.round((Math.floor(Math.min(...vals) * 10) / 10 - 0.1) * 100) / 100;
+  let domainMax = Math.round((Math.ceil(Math.max(...vals) * 10) / 10) * 100) / 100;
+  domainMin = Math.max(1, domainMin);
+  if (domainMax - domainMin < 0.4) domainMax = domainMin + 0.4;
+  domainMax = Math.min(4, domainMax);
+  if (domainMax - domainMin < 0.1) domainMin = Math.max(1, domainMax - 0.4);
+
+  const w = container.clientWidth || 440;
+  const rowH = 34, padT = 10, padB = 26;
+  const iconColW = 28, labelW = 138, leftPad = 10, rightPad = 14;
+  const chartLeft = leftPad + iconColW + labelW;
+  const chartRight = w - rightPad;
+  const barMax = Math.max(20, chartRight - chartLeft);
+  const h = padT + rows.length * rowH + padB;
+  const xFor = (v) => Math.round((chartLeft + (v - domainMin) / (domainMax - domainMin) * barMax) * 100) / 100;
+
+  let gridSvg = '';
+  const tickCount = 4;
+  for (let i = 0; i <= tickCount; i++) {
+    const t = domainMin + (domainMax - domainMin) * i / tickCount;
+    const x = xFor(t);
+    gridSvg += `<line x1="${x}" x2="${x}" y1="${padT}" y2="${h - padB}" stroke="#e6dcd0" stroke-width="1"/>`;
+    gridSvg += `<text x="${x}" y="${h - padB + 16}" font-size="10" fill="#464038" text-anchor="middle">${Math.round(t * 100) / 100}</text>`;
+  }
+  gridSvg += `<line x1="${chartLeft}" x2="${chartLeft}" y1="${padT}" y2="${h - padB}" stroke="#1a1a1a" stroke-width="1.6"/>`;
+
+  let rowsSvg = '';
+  rows.forEach((row, i) => {
+    const y = padT + i * rowH;
+    const cy = y + rowH / 2;
+    const iconSize = 24;
+    rowsSvg += moonIconSVG(row.key, iconSize).replace('<svg ', `<svg x="${leftPad}" y="${cy - iconSize / 2}" `);
+    rowsSvg += `<text x="${leftPad + iconColW}" y="${cy + 4}" font-size="11.5" fill="#464038">${row.label}</text>`;
+
+    if (row.avg === null) {
+      rowsSvg += `<text x="${chartLeft + 6}" y="${cy + 4}" font-size="11" fill="#a8a196">No data</text>`;
+      return;
     }
 
+    const barH = 18, barY = cy - barH / 2;
+    const barW = Math.max(3, xFor(row.avg) - chartLeft);
+    const path = roundedRightPath(chartLeft, barY, barW, barH, barH / 2);
+    const display = Number.isInteger(row.avg) ? String(row.avg) : row.avg.toFixed(1);
+    rowsSvg += `<path class="moon-bar" data-idx="${i}" d="${path}" fill="${MOON_BAR_COLOR}" style="cursor:pointer"/>`;
+    rowsSvg += barW > 26
+      ? `<text x="${chartLeft + barW - 8}" y="${cy + 4}" font-size="12" fill="#fff" text-anchor="end" style="pointer-events:none">${display}</text>`
+      : `<text x="${chartLeft + barW + 6}" y="${cy + 4}" font-size="11" fill="#464038" style="pointer-events:none">${display}</text>`;
+  });
+
+  container.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${gridSvg}${rowsSvg}</svg>`;
+
+  container.querySelectorAll('.moon-bar').forEach(el => {
+    const row = rows[parseInt(el.dataset.idx, 10)];
+    el.addEventListener('mousemove', (e) => {
+      const fmt = (list) => list.map(a => `${a.name} (${a.avg.toFixed(1)})`).join(', ') || '-';
+      showTip(e, `<strong>${row.label}</strong><br>Avg: ${row.avg.toFixed(2)} / 4 (n=${row.count})`
+        + `<br>Top asanas: ${fmt(row.top3)}`
+        + `<br>Low asanas: ${fmt(row.bottom3)}`);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+function renderShapingSection(container, entriesMap) {
+  container.innerHTML = '';
+  const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
+  const hasFemale = Object.values(entriesMap).some(e => e.sex === 'female');
+  const topics = SHAPING_TOPICS.filter(t => t.key !== 'menstrual' || hasFemale);
+
+  topics.forEach(topic => {
+    const cell = document.createElement('div');
+    cell.className = 'factor-cell shaping-cell';
+    cell.innerHTML = `<h3>${topic.title}</h3><div class="shaping-body"></div>`;
     container.appendChild(cell);
-    renderFactorChart(chartDiv, factorBreakdown(entriesMap, key));
+    const body = cell.querySelector('.shaping-body');
+    if (topic.key === 'moon') {
+      renderMoonPhaseChart(body, entries);
+    } else {
+      body.innerHTML = '<div class="empty-state">Coming soon.</div>';
+    }
   });
 }
 

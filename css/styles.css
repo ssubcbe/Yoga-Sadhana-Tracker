@@ -323,14 +323,12 @@ body.signin-page {
 .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-right: 5px; vertical-align: middle; }
 .legend-diamond { border-radius: 2px; transform: rotate(45deg); display: inline-block; width: 9px; height: 9px; margin-right: 7px; }
 
+/* 2 columns x however many topic cells (6 today) reads as 3 rows x 2 columns. */
 .factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 720px) { .factor-grid { grid-template-columns: 1fr; } }
 .factor-cell { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #fffdfa; }
-.factor-cell h3 { font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.03em; }
-
-.moon-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
-.moon-strip-item { display: flex; flex-direction: column; align-items: center; width: 68px; text-align: center; }
-.moon-strip-item span { font-size: 9.5px; color: var(--ink-muted); margin-top: 3px; line-height: 1.2; font-weight: var(--weight-light); }
+.factor-cell h3 { font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.03em; }
+.shaping-cell .empty-state { padding: 34px 0; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {

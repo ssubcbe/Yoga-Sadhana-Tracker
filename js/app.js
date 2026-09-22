@@ -461,7 +461,8 @@ function renderInsightsTab() {
 
     <div class="card">
       <h2>What's shaping your practice</h2>
-      <div id="factor-grid" class="factor-grid"></div>
+      <p class="insight-sub">Based on the last 30 days.</p>
+      <div id="shaping-grid" class="factor-grid"></div>
     </div>
 
     <div class="card">
@@ -492,7 +493,7 @@ function renderInsightsTab() {
     document.getElementById('trend-chart'), entries, trendDates,
     document.getElementById('trend-legend'), document.getElementById('trend-arrow')
   );
-  renderFactorChartsGrid(document.getElementById('factor-grid'), entries);
+  renderShapingSection(document.getElementById('shaping-grid'), entries);
   renderMiniAsanaCharts(document.getElementById('mini-chart-tabs'), document.getElementById('mini-chart-grid'), entries);
 }
 
