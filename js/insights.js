@@ -597,7 +597,7 @@ const SHAPING_TOPICS = [
     footer: 'Overall Score of Asanas during the recent phases of the Moon. Hover over the bar to find the Top and bottom performed Asanas.',
   },
   { key: 'sun', title: 'Trikala Sandhya' },
-  { key: 'fasting', title: 'Fasting (After Fasting)' },
+  { key: 'fasting', title: 'Fasting' },
   { key: 'showering', title: 'Showering' },
   { key: 'kriyas', title: 'Kriyas and Sadhanas' },
   { key: 'menstrual', title: 'Menstrual Cycle' },
@@ -867,6 +867,158 @@ function renderTrikalaSandhyaBox(container, entriesMap) {
   });
 }
 
+// ---------- "Fasting" box: influence of Recent Fasting around the last two Ekadashi ----------
+// Ekadashi is traditionally a fasting day, so the window this box analyzes
+// is bounded by the two most recent Ekadashi dates (inclusive), found by
+// walking backward from today using the same lunar approximation as
+// everywhere else in the app (js/moon.js's getLunarEvent).
+function lastTwoEkadashiWindow() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const found = [];
+  let d = todayStr;
+  let guard = 0;
+  while (found.length < 2 && guard < 120) {
+    if (getLunarEvent(d).isEkadashi) found.push(d);
+    d = addDays(d, -1);
+    guard++;
+  }
+  if (found.length < 2) return null;
+  return { start: found[1], end: found[0] }; // [older, newer]
+}
+
+function computeFastingBreakdown(entriesMap, window) {
+  const buckets = {};
+  FASTING_OPTIONS.forEach(o => { buckets[o.value] = { scores: [], asanaTotals: {} }; });
+  Object.values(entriesMap).forEach(entry => {
+    if (entry.date < window.start || entry.date > window.end) return;
+    const score = entryAvgScore(entry);
+    if (score === null) return;
+    const b = buckets[entry.fasting];
+    if (!b) return;
+    b.scores.push(score);
+    flattenAsanaEntries(entry.asanaRatings).forEach(([key, val]) => {
+      const t = b.asanaTotals[key] || (b.asanaTotals[key] = { sum: 0, count: 0 });
+      t.sum += val; t.count += 1;
+    });
+  });
+  return FASTING_OPTIONS.map(o => {
+    const b = buckets[o.value];
+    const avg = b.scores.length ? b.scores.reduce((a, c) => a + c, 0) / b.scores.length : null;
+    const asanaAverages = Object.entries(b.asanaTotals).map(([key, t]) => ({
+      name: (ASANAS.find(a => a.key === key) || {}).name || key,
+      avg: t.sum / t.count,
+    })).sort((a, b2) => b2.avg - a.avg);
+    return {
+      value: o.value, label: o.label, avg, count: b.scores.length,
+      top3: asanaAverages.slice(0, 3), bottom3: asanaAverages.slice(-3).reverse(),
+    };
+  });
+}
+
+const FASTING_BAR_COLOR = '#E8842A';
+
+// Same visual language as the Moon Phase bars (zoomed axis, value drawn
+// inside the bar), just 3 fixed rows and no row icon.
+function renderFastingChart(container, rows, rangeLabel) {
+  const withData = rows.filter(r => r.avg !== null);
+  if (!withData.length) {
+    container.innerHTML = '<div class="empty-state">No entries logged in this window yet.</div>';
+    return;
+  }
+  const vals = withData.map(r => r.avg);
+  let domainMin = Math.round((Math.floor(Math.min(...vals) * 10) / 10 - 0.1) * 100) / 100;
+  let domainMax = Math.round((Math.ceil(Math.max(...vals) * 10) / 10) * 100) / 100;
+  domainMin = Math.max(1, domainMin);
+  if (domainMax - domainMin < 0.4) domainMax = domainMin + 0.4;
+  domainMax = Math.min(4, domainMax);
+  if (domainMax - domainMin < 0.1) domainMin = Math.max(1, domainMax - 0.4);
+
+  const w = container.clientWidth || 440;
+  const rowH = 34, padT = 10, padB = 26;
+  const labelW = 118, leftPad = 10, rightPad = 14;
+  const chartLeft = leftPad + labelW;
+  const chartRight = w - rightPad;
+  const barMax = Math.max(20, chartRight - chartLeft);
+  const h = padT + rows.length * rowH + padB;
+  const xFor = (v) => Math.round((chartLeft + (v - domainMin) / (domainMax - domainMin) * barMax) * 100) / 100;
+
+  let gridSvg = '';
+  const tickCount = 4;
+  for (let i = 0; i <= tickCount; i++) {
+    const t = domainMin + (domainMax - domainMin) * i / tickCount;
+    const x = xFor(t);
+    gridSvg += `<line x1="${x}" x2="${x}" y1="${padT}" y2="${h - padB}" stroke="#e6dcd0" stroke-width="1"/>`;
+    gridSvg += `<text x="${x}" y="${h - padB + 16}" font-size="10" fill="#464038" text-anchor="middle">${Math.round(t * 100) / 100}</text>`;
+  }
+  gridSvg += `<line x1="${chartLeft}" x2="${chartLeft}" y1="${padT}" y2="${h - padB}" stroke="#1a1a1a" stroke-width="1.6"/>`;
+
+  let rowsSvg = '';
+  const chartId = 'fast' + (_pieSeq++);
+  rows.forEach((row, i) => {
+    const y = padT + i * rowH;
+    const cy = y + rowH / 2;
+    rowsSvg += `<text x="${leftPad}" y="${cy + 4}" font-size="11.5" fill="#464038">${row.label}</text>`;
+    if (row.avg === null) {
+      rowsSvg += `<text x="${chartLeft + 6}" y="${cy + 4}" font-size="11" fill="#a8a196">No data</text>`;
+      return;
+    }
+    const barH = 18, barY = cy - barH / 2;
+    const barW = Math.max(3, xFor(row.avg) - chartLeft);
+    const path = roundedRightPath(chartLeft, barY, barW, barH, barH / 2);
+    const display = Number.isInteger(row.avg) ? String(row.avg) : row.avg.toFixed(1);
+    rowsSvg += `<path class="fasting-bar" data-chart="${chartId}" data-idx="${i}" d="${path}" fill="${FASTING_BAR_COLOR}" style="cursor:pointer"/>`;
+    rowsSvg += barW > 26
+      ? `<text x="${chartLeft + barW - 8}" y="${cy + 4}" font-size="12" fill="#fff" text-anchor="end" style="pointer-events:none">${display}</text>`
+      : `<text x="${chartLeft + barW + 6}" y="${cy + 4}" font-size="11" fill="#464038" style="pointer-events:none">${display}</text>`;
+  });
+
+  container.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${gridSvg}${rowsSvg}</svg>`;
+
+  container.querySelectorAll(`.fasting-bar[data-chart="${chartId}"]`).forEach(el => {
+    const row = rows[parseInt(el.dataset.idx, 10)];
+    el.addEventListener('mousemove', (e) => {
+      const fmt = (list) => list.map(a => `${a.name} (${a.avg.toFixed(1)})`).join(', ') || '-';
+      showTip(e, `<strong>${row.label}</strong><br>Avg: ${row.avg.toFixed(2)} / 4 (n=${row.count}) - ${rangeLabel}`
+        + `<br>Top asanas: ${fmt(row.top3)}`
+        + `<br>Low asanas: ${fmt(row.bottom3)}`);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+function fastingFindingSentence(rows, rangeLabel) {
+  const withData = rows.filter(r => r.avg !== null).sort((a, b) => b.avg - a.avg);
+  if (!withData.length) return `No entries logged between the last two Ekadashi (${rangeLabel}) yet.`;
+  if (withData.length < 2) return `Only "${withData[0].label}" was logged between the last two Ekadashi (${rangeLabel}) - not enough variety yet to compare fasting levels.`;
+  const best = withData[0], worst = withData[withData.length - 1];
+  if (best.avg - worst.avg < 0.05) return `Fasting level made little difference between the last two Ekadashi (${rangeLabel}) - scores were close across the board.`;
+  return `Between the last two Ekadashi (${rangeLabel}), "${best.label}" read easiest (avg ${best.avg.toFixed(1)}/4, n=${best.count}) versus "${worst.label}" (avg ${worst.avg.toFixed(1)}/4, n=${worst.count}).`;
+}
+
+function renderFastingBox(container, entriesMap) {
+  const window = lastTwoEkadashiWindow();
+  if (!window) {
+    container.innerHTML = '<div class="empty-state">Could not determine the last two Ekadashi dates yet.</div>';
+    return;
+  }
+  const rangeLabel = `${formatDDMMM(window.start)} to ${formatDDMMM(window.end)}`;
+  const rows = computeFastingBreakdown(entriesMap, window);
+
+  const caption = document.createElement('p');
+  caption.className = 'shaping-caption';
+  caption.textContent = `Based on the last two Ekadashi (${rangeLabel}).`;
+  container.appendChild(caption);
+
+  const chartDiv = document.createElement('div');
+  container.appendChild(chartDiv);
+  renderFastingChart(chartDiv, rows, rangeLabel);
+
+  const finding = document.createElement('p');
+  finding.className = 'insight-sub shaping-footer';
+  finding.textContent = fastingFindingSentence(rows, rangeLabel);
+  container.appendChild(finding);
+}
+
 function renderShapingSection(container, entriesMap) {
   container.innerHTML = '';
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
@@ -887,6 +1039,8 @@ function renderShapingSection(container, entriesMap) {
       renderMoonPhaseChart(body, entries);
     } else if (topic.key === 'sun') {
       renderTrikalaSandhyaBox(body, entriesMap);
+    } else if (topic.key === 'fasting') {
+      renderFastingBox(body, entriesMap);
     } else {
       body.innerHTML = '<div class="empty-state">Coming soon.</div>';
     }
