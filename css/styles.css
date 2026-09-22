@@ -330,6 +330,17 @@ body.signin-page {
 .factor-cell h3 { font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 2px; }
 .shaping-cell .empty-state { padding: 34px 0; }
 .shaping-caption { color: var(--ink-muted); font-size: 13px; font-weight: var(--weight-light); margin: 0; }
+/* Title text is typed with its own exact casing (only "TRIKALA SANDHYA"
+   itself is caps), so this cell opts out of the grid's default uppercase h3. */
+.shaping-cell[data-topic="sun"] h3 { text-transform: none; }
+
+.sun-session-label { font-size: 12px; font-weight: var(--weight-semibold); color: var(--maroon); text-transform: uppercase; letter-spacing: 0.02em; margin: 12px 0 6px; }
+.sun-session-label:first-child { margin-top: 4px; }
+.sun-pie-row { display: flex; align-items: center; gap: 16px; justify-content: flex-start; }
+.sun-pie-legend { display: flex; flex-direction: column; gap: 4px; }
+.sun-legend-item { font-size: 12px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+.sun-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+.shaping-notes-space { min-height: 40px; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {
