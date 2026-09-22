@@ -243,7 +243,7 @@ body.signin-page {
   border: 1px solid var(--border);
   background: #fff;
 }
-.moon-stage-item.current { background: var(--pill-bg); border-color: var(--pill-bg); }
+.moon-stage-item.current { background: #f6d7ac; border: 2px solid var(--saffron); padding: 3px; }
 
 /* Each Morning/Evening box carries its own tab label (click to switch which
    pose grid shows) plus its own "Showered before Asanas?" answer - both
@@ -331,9 +331,9 @@ body.signin-page {
 }
 .key-message-card h2.key-message-title { margin: 0 0 2px; font-size: 16px; font-weight: var(--weight-bold); color: var(--maroon); text-transform: none; letter-spacing: normal; }
 .key-message-range { font-size: 11.5px; color: var(--ink-muted); font-weight: var(--weight-light); margin: 0 0 8px; }
-.key-message-finding { font-size: 13px; line-height: 1.55; margin: 0 0 8px; color: var(--ink); font-weight: var(--weight-regular); }
-.key-message-improvement { font-size: 12.5px; line-height: 1.55; margin: 0; color: var(--maroon); font-weight: var(--weight-regular); }
-.key-message-advice { font-size: 12.5px; line-height: 1.55; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--ink); font-weight: var(--weight-regular); font-style: italic; }
+.key-message-finding { font-size: 13px; line-height: 1.55; margin: 0 0 8px; color: var(--ink); font-weight: var(--weight-light); }
+.key-message-improvement { font-size: 12.5px; line-height: 1.55; margin: 0; color: var(--maroon); font-weight: var(--weight-light); }
+.key-message-advice { font-size: 12.5px; line-height: 1.55; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--ink); font-weight: var(--weight-light); font-style: italic; }
 
 .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-right: 5px; vertical-align: middle; }
 .legend-diamond { border-radius: 2px; transform: rotate(45deg); display: inline-block; width: 9px; height: 9px; margin-right: 7px; }
