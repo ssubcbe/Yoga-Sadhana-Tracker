@@ -20,6 +20,7 @@
 }
 
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
@@ -397,7 +398,23 @@ body.signin-page {
 .mini-chart-title svg { flex-shrink: 0; }
 .mini-chart-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+/* Jump links to each Insights section, one bordered row (wraps on narrow
+   screens) - plain anchors to each section's id, no JS routing needed. */
+.insight-nav { display: flex; flex-wrap: wrap; border: 1px solid var(--ink); margin-bottom: 18px; }
+.insight-nav-item {
+  padding: 8px 14px;
+  border-right: 1px solid var(--ink);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  color: var(--maroon);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.insight-nav-item:last-child { border-right: none; }
+.insight-nav-item:hover { background: var(--pill-bg); text-decoration: underline; }
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; scroll-margin-top: 14px; }
+.stat-row-note { font-size: 11px; font-weight: var(--weight-light); color: var(--ink-muted); text-align: left; margin: -10px 0 18px; }
 .stat-tile { background: #fffdfa; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .stat-tile .stat-value { font-size: 24px; font-weight: var(--weight-semibold); color: var(--saffron); }
 .stat-tile .stat-label { font-size: 12px; color: var(--ink-muted); margin-top: 4px; font-weight: var(--weight-light); }

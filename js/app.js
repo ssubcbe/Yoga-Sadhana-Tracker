@@ -451,7 +451,15 @@ function renderInsightsTab() {
   const lastMsg = generateKeyMessage(entries, lastRange, 'last week');
 
   root.innerHTML = `
-    <div class="stat-row">
+    <nav class="insight-nav">
+      <a class="insight-nav-item" href="#insight-statistics">Statistics</a>
+      <a class="insight-nav-item" href="#insight-key-messages">Key Messages</a>
+      <a class="insight-nav-item" href="#insight-trend">30 Day Trend</a>
+      <a class="insight-nav-item" href="#insight-shaping">Factors shaping my Practice</a>
+      <a class="insight-nav-item" href="#insight-mini-charts">My Asana progress - 7 days</a>
+    </nav>
+
+    <div id="insight-statistics" class="stat-row">
       <div class="stat-tile"><div class="stat-value">${stats.todayScore !== null ? stats.todayScore.toFixed(1) + '/4' : '-'}</div><div class="stat-label">Today's avg</div></div>
       <div class="stat-tile"><div class="stat-value">${stats.avg7 !== null ? stats.avg7.toFixed(1) + '/4' : '-'}</div><div class="stat-label">7-day avg</div></div>
       <div class="stat-tile"><div class="stat-value">${stats.avg30 !== null ? stats.avg30.toFixed(1) + '/4' : '-'}</div><div class="stat-label">30-day avg</div></div>
@@ -461,8 +469,9 @@ function renderInsightsTab() {
         <div class="stat-summary-line"><span class="stat-summary-label">Days recorded</span><span class="stat-summary-value">${stats.totalDaysLogged}</span></div>
       </div>
     </div>
+    <p class="stat-row-note">The above number indicates your overall Yoga Asana score. 1 - Low, 4 - High</p>
 
-    <div class="week-message-grid">
+    <div id="insight-key-messages" class="week-message-grid">
       <div class="key-message-card">
         <h2 class="key-message-title">Current Week's Key Message</h2>
         <p class="key-message-range">(Mon, ${formatDDMMM(currentWeekFull.start)} - Sun, ${formatDDMMM(currentWeekFull.end)})</p>
@@ -479,7 +488,7 @@ function renderInsightsTab() {
       </div>
     </div>
 
-    <div class="card">
+    <div id="insight-trend" class="card">
       <div class="trend-header">
         <h2 class="trend-title">30-Day Overall Yoga Asanas Trend</h2>
         <span id="trend-arrow" class="trend-arrow"></span>
@@ -489,12 +498,12 @@ function renderInsightsTab() {
       <p class="insight-sub">Score is the equal-weighted average across all rated asanas that day (0 = No data available, 1 = Very difficult ... 4 = Pleasure). Hover a point for that day's top high and low performed asanas.</p>
     </div>
 
-    <div class="card">
+    <div id="insight-shaping" class="card">
       <h2 class="shaping-title">What's shaping your practice</h2>
       <div id="shaping-grid" class="factor-grid"></div>
     </div>
 
-    <div class="card">
+    <div id="insight-mini-charts" class="card">
       <h2 class="trend-title">My Asana Progress — Last 7 Days</h2>
       <div id="mini-chart-tabs" class="mini-chart-tabs"></div>
       <div id="mini-chart-grid" class="mini-chart-grid"></div>
