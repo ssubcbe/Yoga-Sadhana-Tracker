@@ -329,11 +329,11 @@ body.signin-page {
   padding: 16px;
   box-shadow: 0 3px 10px rgba(70, 64, 56, 0.12);
 }
-.key-message-card h2.key-message-title { margin: 0 0 2px; font-size: 19px; font-weight: var(--weight-bold); color: var(--maroon); text-transform: none; letter-spacing: normal; }
-.key-message-range { font-size: 13.5px; color: var(--ink-muted); font-weight: var(--weight-light); margin: 0 0 10px; }
-.key-message-finding { font-size: 15px; line-height: 1.6; margin: 0 0 10px; color: var(--ink); font-weight: var(--weight-regular); }
-.key-message-improvement { font-size: 14px; line-height: 1.6; margin: 0; color: var(--maroon); font-weight: var(--weight-semibold); }
-.key-message-advice { font-size: 14px; line-height: 1.6; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--ink); font-weight: var(--weight-regular); font-style: italic; }
+.key-message-card h2.key-message-title { margin: 0 0 2px; font-size: 16px; font-weight: var(--weight-bold); color: var(--maroon); text-transform: none; letter-spacing: normal; }
+.key-message-range { font-size: 11.5px; color: var(--ink-muted); font-weight: var(--weight-light); margin: 0 0 8px; }
+.key-message-finding { font-size: 13px; line-height: 1.55; margin: 0 0 8px; color: var(--ink); font-weight: var(--weight-regular); }
+.key-message-improvement { font-size: 12.5px; line-height: 1.55; margin: 0; color: var(--maroon); font-weight: var(--weight-regular); }
+.key-message-advice { font-size: 12.5px; line-height: 1.55; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--ink); font-weight: var(--weight-regular); font-style: italic; }
 
 .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-right: 5px; vertical-align: middle; }
 .legend-diamond { border-radius: 2px; transform: rotate(45deg); display: inline-block; width: 9px; height: 9px; margin-right: 7px; }
@@ -398,10 +398,10 @@ body.signin-page {
 .mini-chart-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.stat-tile { background: #fffdfa; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+.stat-tile { background: #fffdfa; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .stat-tile .stat-value { font-size: 24px; font-weight: var(--weight-semibold); color: var(--saffron); }
 .stat-tile .stat-label { font-size: 12px; color: var(--ink-muted); margin-top: 4px; font-weight: var(--weight-light); }
-.stat-tile-summary { display: flex; flex-direction: column; justify-content: center; gap: 6px; text-align: left; }
+.stat-tile-summary { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; text-align: left; }
 .stat-summary-line { display: flex; flex-direction: column; }
 .stat-summary-label { display: block; font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.02em; }
 .stat-summary-value { font-size: 17px; color: var(--ink); font-weight: var(--weight-bold); }
