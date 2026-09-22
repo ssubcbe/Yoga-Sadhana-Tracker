@@ -344,6 +344,10 @@ body.signin-page {
 .shower-legend-item { display: flex; align-items: center; gap: 5px; }
 .shower-legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
+.kriya-legend { display: flex; gap: 16px; justify-content: center; margin-top: 6px; font-size: 11px; color: var(--ink-muted); }
+.kriya-legend-item { display: flex; align-items: center; gap: 5px; }
+.kriya-legend-swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {
   font-family: var(--font);

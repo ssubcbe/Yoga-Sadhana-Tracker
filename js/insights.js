@@ -1187,6 +1187,151 @@ function renderShowerBox(container, entriesMap) {
   container.appendChild(finding);
 }
 
+// ---------- "Kriyas and Sadhanas" box: diverging influence chart ----------
+// One bar per kriya/sadhana, sized by (avg score on days it was done) minus
+// (avg score on days it wasn't) - a genuinely different chart shape from
+// the value bars, pies and dumbbell used elsewhere: signed, zero-centered,
+// ranked by influence rather than by raw value.
+function computeKriyaBreakdown(entries) {
+  return KRIYA_SADHANA_ITEMS.map(item => {
+    const done = { scores: [], asanaTotals: {} };
+    const notDone = { scores: [], asanaTotals: {} };
+    entries.forEach(entry => {
+      const val = entry.kriyaSadhana && entry.kriyaSadhana[item.key];
+      if (val !== true && val !== false) return; // unanswered
+      const score = entryAvgScore(entry);
+      if (score === null) return;
+      const g = val ? done : notDone;
+      g.scores.push(score);
+      flattenAsanaEntries(entry.asanaRatings).forEach(([key, v]) => {
+        const t = g.asanaTotals[key] || (g.asanaTotals[key] = { sum: 0, count: 0 });
+        t.sum += v; t.count += 1;
+      });
+    });
+    const build = (g) => {
+      const avg = g.scores.length ? g.scores.reduce((a, b) => a + b, 0) / g.scores.length : null;
+      const asanaAverages = Object.entries(g.asanaTotals).map(([key, t]) => ({
+        name: (ASANAS.find(a => a.key === key) || {}).name || key,
+        avg: t.sum / t.count,
+      })).sort((a, b) => b.avg - a.avg);
+      return { avg, count: g.scores.length, top3: asanaAverages.slice(0, 3), bottom3: asanaAverages.slice(-3).reverse() };
+    };
+    const doneStats = build(done), notDoneStats = build(notDone);
+    const delta = (doneStats.avg !== null && notDoneStats.avg !== null) ? doneStats.avg - notDoneStats.avg : null;
+    return { key: item.key, name: item.name, done: doneStats, notDone: notDoneStats, delta };
+  });
+}
+
+const KRIYA_POSITIVE_COLOR = '#4CAF50';
+const KRIYA_NEGATIVE_COLOR = '#E5352B';
+
+function roundedLeftPath(x, y, width, height, radius) {
+  const r = Math.max(0, Math.min(radius, width, height / 2));
+  return `M${x + r},${y} L${x + width},${y} L${x + width},${y + height} L${x + r},${y + height} `
+    + `Q${x},${y + height} ${x},${y + height - r} L${x},${y + r} Q${x},${y} ${x + r},${y} Z`;
+}
+
+function renderKriyaDivergingChart(container, rowsIn, rangeLabel) {
+  const rows = rowsIn.filter(r => r.delta !== null).sort((a, b) => b.delta - a.delta)
+    .concat(rowsIn.filter(r => r.delta === null));
+  const withDelta = rows.filter(r => r.delta !== null);
+  if (!withDelta.length) {
+    container.innerHTML = '<div class="empty-state">Not enough kriya/sadhana variety logged in the last 30 days yet.</div>';
+    return;
+  }
+  let domainMax = Math.max(...withDelta.map(r => Math.abs(r.delta)));
+  domainMax = Math.ceil((domainMax + 0.05) * 10) / 10;
+  if (domainMax < 0.2) domainMax = 0.2;
+
+  const w = container.clientWidth || 440;
+  const rowH = 30, padT = 10, padB = 10;
+  const labelW = 150, leftPad = 10, rightPad = 42;
+  const chartLeft = leftPad + labelW;
+  const chartRight = w - rightPad;
+  const trackW = Math.max(40, chartRight - chartLeft);
+  const zeroX = chartLeft + trackW / 2;
+  const halfW = trackW / 2;
+  const h = padT + rows.length * rowH + padB;
+  const xFor = (delta) => Math.round((zeroX + (delta / domainMax) * halfW) * 100) / 100;
+
+  let rowsSvg = `<line x1="${zeroX}" x2="${zeroX}" y1="${padT}" y2="${h - padB}" stroke="#1a1a1a" stroke-width="1.6"/>`;
+  const chartId = 'kriya' + (_pieSeq++);
+
+  rows.forEach((row, i) => {
+    const y = padT + i * rowH;
+    const cy = y + rowH / 2;
+    const label = row.name.length > 26 ? row.name.slice(0, 25) + '…' : row.name;
+    rowsSvg += `<text x="${leftPad}" y="${cy + 4}" font-size="10.5" fill="#464038">${label}</text>`;
+    if (row.delta === null) {
+      rowsSvg += `<text x="${zeroX + 6}" y="${cy + 4}" font-size="10.5" fill="#a8a196">No data</text>`;
+      return;
+    }
+    const barH = 14, barY = cy - barH / 2;
+    const x = xFor(row.delta);
+    const display = (row.delta >= 0 ? '+' : '') + row.delta.toFixed(2);
+    if (row.delta >= 0) {
+      const barW = Math.max(2, x - zeroX);
+      const path = roundedRightPath(zeroX, barY, barW, barH, barH / 2);
+      rowsSvg += `<path class="kriya-bar" data-chart="${chartId}" data-idx="${i}" d="${path}" fill="${KRIYA_POSITIVE_COLOR}" style="cursor:pointer"/>`;
+      rowsSvg += `<text x="${zeroX + barW + 6}" y="${cy + 4}" font-size="10.5" fill="#464038" style="pointer-events:none">${display}</text>`;
+    } else {
+      const barW = Math.max(2, zeroX - x);
+      const path = roundedLeftPath(x, barY, barW, barH, barH / 2);
+      rowsSvg += `<path class="kriya-bar" data-chart="${chartId}" data-idx="${i}" d="${path}" fill="${KRIYA_NEGATIVE_COLOR}" style="cursor:pointer"/>`;
+      rowsSvg += `<text x="${x - 6}" y="${cy + 4}" font-size="10.5" fill="#464038" text-anchor="end" style="pointer-events:none">${display}</text>`;
+    }
+  });
+
+  container.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${rowsSvg}</svg>`
+    + `<div class="kriya-legend">`
+    + `<span class="kriya-legend-item"><span class="kriya-legend-swatch" style="background:${KRIYA_POSITIVE_COLOR}"></span>Higher score when done</span>`
+    + `<span class="kriya-legend-item"><span class="kriya-legend-swatch" style="background:${KRIYA_NEGATIVE_COLOR}"></span>Lower score when done</span>`
+    + `</div>`;
+
+  container.querySelectorAll(`.kriya-bar[data-chart="${chartId}"]`).forEach(el => {
+    const row = rows[parseInt(el.dataset.idx, 10)];
+    el.addEventListener('mousemove', (e) => {
+      const fmt = (list) => list.map(a => `${a.name} (${a.avg.toFixed(1)})`).join(', ') || '-';
+      showTip(e, `<strong>${row.name}</strong><br>Done: avg ${row.done.avg.toFixed(2)}/4 (n=${row.done.count}) - ${rangeLabel}`
+        + `<br>Not done: avg ${row.notDone.avg.toFixed(2)}/4 (n=${row.notDone.count})`
+        + `<br>Top asanas when done: ${fmt(row.done.top3)}`
+        + `<br>Low asanas when done: ${fmt(row.done.bottom3)}`);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+function kriyaFindingSentence(rowsIn, rangeLabel) {
+  const withDelta = rowsIn.filter(r => r.delta !== null);
+  if (!withDelta.length) return `Not enough kriya/sadhana variety logged over the ${rangeLabel} yet to compare.`;
+  const sorted = withDelta.slice().sort((a, b) => b.delta - a.delta);
+  const best = sorted[0], worst = sorted[sorted.length - 1];
+  const parts = [];
+  if (best.delta > 0.05) parts.push(`Days with "${best.name}" done read easiest (+${best.delta.toFixed(2)}/4 vs. not done, n=${best.done.count}/${best.notDone.count}).`);
+  if (worst.delta < -0.05 && worst.key !== best.key) parts.push(`Days without "${worst.name}" read easier than days with it (${worst.delta.toFixed(2)}/4, n=${worst.done.count}/${worst.notDone.count}).`);
+  if (!parts.length) return `None of the kriyas/sadhanas showed a clear influence over the ${rangeLabel} - scores were close either way.`;
+  return parts.join(' ');
+}
+
+function renderKriyaBox(container, entriesMap) {
+  const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
+  const rows = computeKriyaBreakdown(entries);
+
+  const caption = document.createElement('p');
+  caption.className = 'shaping-caption';
+  caption.textContent = 'Based on the last 30 days.';
+  container.appendChild(caption);
+
+  const chartDiv = document.createElement('div');
+  container.appendChild(chartDiv);
+  renderKriyaDivergingChart(chartDiv, rows, 'last 30 days');
+
+  const finding = document.createElement('p');
+  finding.className = 'insight-sub shaping-footer';
+  finding.textContent = kriyaFindingSentence(rows, 'last 30 days');
+  container.appendChild(finding);
+}
+
 function renderShapingSection(container, entriesMap) {
   container.innerHTML = '';
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
@@ -1211,6 +1356,8 @@ function renderShapingSection(container, entriesMap) {
       renderFastingBox(body, entriesMap);
     } else if (topic.key === 'showering') {
       renderShowerBox(body, entriesMap);
+    } else if (topic.key === 'kriyas') {
+      renderKriyaBox(body, entriesMap);
     } else {
       body.innerHTML = '<div class="empty-state">Coming soon.</div>';
     }
