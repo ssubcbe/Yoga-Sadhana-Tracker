@@ -327,8 +327,10 @@ body.signin-page {
 .factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 720px) { .factor-grid { grid-template-columns: 1fr; } }
 .factor-cell { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #fffdfa; }
-.factor-cell h3 { font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.03em; }
+.factor-cell h3 { font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 2px; }
 .shaping-cell .empty-state { padding: 34px 0; }
+.shaping-caption { color: var(--ink-muted); font-size: 13px; font-weight: var(--weight-light); margin: 0; }
+.shaping-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {
