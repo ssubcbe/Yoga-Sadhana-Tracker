@@ -451,12 +451,13 @@ function renderInsightsTab() {
   const lastMsg = generateKeyMessage(entries, lastRange, 'last week');
 
   root.innerHTML = `
+    <h2 class="insight-page-title">My Daily Well-being Insight</h2>
     <nav class="insight-nav">
-      <a class="insight-nav-item" href="#insight-statistics">Statistics</a>
-      <a class="insight-nav-item" href="#insight-key-messages">Key Messages</a>
-      <a class="insight-nav-item" href="#insight-trend">30 Day Trend</a>
-      <a class="insight-nav-item" href="#insight-shaping">Factors shaping my Practice</a>
-      <a class="insight-nav-item" href="#insight-mini-charts">My Asana progress - 7 days</a>
+      <a class="insight-nav-item" href="#insight-statistics">${INSIGHT_NAV_ICONS.statistics}<span>Statistics</span></a>
+      <a class="insight-nav-item" href="#insight-key-messages">${INSIGHT_NAV_ICONS.messages}<span>Key Messages</span></a>
+      <a class="insight-nav-item" href="#insight-trend">${INSIGHT_NAV_ICONS.trend}<span>30 Day Trend</span></a>
+      <a class="insight-nav-item" href="#insight-shaping">${INSIGHT_NAV_ICONS.factors}<span>Factors shaping my Practice</span></a>
+      <a class="insight-nav-item" href="#insight-mini-charts">${INSIGHT_NAV_ICONS.asana}<span>My Asana progress - 7 days</span></a>
     </nav>
 
     <div id="insight-statistics" class="stat-row">

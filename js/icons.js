@@ -35,6 +35,16 @@ const ICONS = {
 // trend over time", in the same hand-drawn line style as the rest.
 const MINI_CHART_ICON = `<svg viewBox="0 0 100 100" ${ICON_STYLE} width="14" height="14"><path d="M12 88 L88 88"/><path d="M28 88 L28 62"/><path d="M50 88 L50 46"/><path d="M72 88 L72 24"/><circle cx="72" cy="24" r="7" fill="#464038" stroke="none"/></svg>`;
 
+// Same hand-drawn, license-free line style (ICON_STYLE) as every other icon
+// here, sized to sit inline with the Insights section nav labels.
+const INSIGHT_NAV_ICONS = {
+  statistics: `<svg viewBox="0 0 100 100" ${ICON_STYLE} width="15" height="15"><path d="M15 85 L85 85"/><path d="M28 85 L28 58"/><path d="M50 85 L50 35"/><path d="M72 85 L72 65"/></svg>`,
+  messages: `<svg viewBox="0 0 100 100" ${ICON_STYLE} width="15" height="15"><path d="M15 20 L85 20 L85 65 L45 65 L25 85 L25 65 L15 65 Z"/></svg>`,
+  trend: MINI_CHART_ICON,
+  factors: `<svg viewBox="0 0 100 100" ${ICON_STYLE} width="15" height="15"><path d="M14 28 H86 M14 50 H86 M14 72 H86"/><circle cx="36" cy="28" r="7" fill="#464038" stroke="none"/><circle cx="64" cy="50" r="7" fill="#464038" stroke="none"/><circle cx="44" cy="72" r="7" fill="#464038" stroke="none"/></svg>`,
+  asana: `<svg viewBox="0 0 100 100" ${ICON_STYLE} width="15" height="15"><circle cx="50" cy="20" r="8" fill="#464038" stroke="none"/><path d="M50 28 L50 55 M50 55 L25 70 M50 55 L75 70 M25 70 L75 70 M50 40 L32 48 M50 40 L68 48"/></svg>`,
+};
+
 // Simple moon-phase glyphs: a dark disc with a light "lens" overlay offset
 // horizontally, clipped to the disc. Not an astronomically exact terminator
 // (that needs an ellipse-arc path), but a recognizable, consistent 8-phase

@@ -398,20 +398,25 @@ body.signin-page {
 .mini-chart-title svg { flex-shrink: 0; }
 .mini-chart-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Jump links to each Insights section, one bordered row (wraps on narrow
-   screens) - plain anchors to each section's id, no JS routing needed. */
-.insight-nav { display: flex; flex-wrap: wrap; border: 1px solid var(--ink); margin-bottom: 18px; }
+.insight-page-title { font-size: 24px; font-weight: var(--weight-regular); color: var(--maroon); text-align: center; margin: 4px 0 16px; }
+
+/* Jump links to each Insights section - plain icon+label anchors to each
+   section's id (no JS routing needed), evenly spaced across the row, no
+   box/border. Text matches .stat-summary-label's styling exactly. */
+.insight-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .insight-nav-item {
-  padding: 8px 14px;
-  border-right: 1px solid var(--ink);
-  font-weight: var(--weight-semibold);
-  font-size: 13px;
-  color: var(--maroon);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-weight: var(--weight-light);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   text-decoration: none;
-  white-space: nowrap;
 }
-.insight-nav-item:last-child { border-right: none; }
-.insight-nav-item:hover { background: var(--pill-bg); text-decoration: underline; }
+.insight-nav-item svg { flex-shrink: 0; }
+.insight-nav-item:hover { color: var(--maroon); text-decoration: underline; }
 
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; scroll-margin-top: 14px; }
 .stat-row-note { font-size: 11px; font-weight: var(--weight-light); color: var(--ink-muted); text-align: left; margin: -10px 0 18px; }
