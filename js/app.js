@@ -6,6 +6,10 @@ let activeSession = new Date().getHours() < 12 ? 'morning' : 'evening'; // which
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function nowTimeStr() { return new Date().toTimeString().slice(0, 5); }
+function formatFullDate(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `${d}-${MONTH_ABBR[parseInt(m, 10) - 1]}-${y}`;
+}
 
 // Sex is a one-time choice, locked after the first pick (see the sex-picker
 // UI in renderEntryForm), stored at the account level rather than per day.
@@ -434,6 +438,11 @@ function renderInsightsTab() {
   }
 
   const keyMsg = generateKeyMessage(entries);
+  // A continuous calendar range (not just the days that happen to have an
+  // entry), so renderTrendChart can show a grey/zero marker for any gap day
+  // within the window instead of silently skipping straight over it.
+  const allDates = sortedDates(entries);
+  const startedOn = allDates.length ? formatFullDate(allDates[0]) : '-';
 
   root.innerHTML = `
     <div class="card key-message-card">
@@ -443,10 +452,14 @@ function renderInsightsTab() {
     </div>
 
     <div class="stat-row">
-      <div class="stat-tile"><div class="stat-value">${stats.todayScore !== null ? stats.todayScore.toFixed(1) : '-'}</div><div class="stat-label">Today's avg (of 4)</div></div>
-      <div class="stat-tile"><div class="stat-value">${stats.avg7 !== null ? stats.avg7.toFixed(1) : '-'}</div><div class="stat-label">7-day avg</div></div>
-      <div class="stat-tile"><div class="stat-value">${stats.avg30 !== null ? stats.avg30.toFixed(1) : '-'}</div><div class="stat-label">30-day avg</div></div>
+      <div class="stat-tile"><div class="stat-value">${stats.todayScore !== null ? stats.todayScore.toFixed(1) + '/4' : '-'}</div><div class="stat-label">Today's avg</div></div>
+      <div class="stat-tile"><div class="stat-value">${stats.avg7 !== null ? stats.avg7.toFixed(1) + '/4' : '-'}</div><div class="stat-label">7-day avg</div></div>
+      <div class="stat-tile"><div class="stat-value">${stats.avg30 !== null ? stats.avg30.toFixed(1) + '/4' : '-'}</div><div class="stat-label">30-day avg</div></div>
       <div class="stat-tile"><div class="stat-value">${stats.streak}</div><div class="stat-label">Day streak</div></div>
+      <div class="stat-tile stat-tile-summary">
+        <div class="stat-summary-line"><span class="stat-summary-label">Started on</span>${startedOn}</div>
+        <div class="stat-summary-line"><span class="stat-summary-label">Days recorded</span>${stats.totalDaysLogged}</div>
+      </div>
     </div>
 
     <div class="card">
@@ -465,23 +478,11 @@ function renderInsightsTab() {
     </div>
 
     <div class="card">
-      <h2>More findings</h2>
-      <ul class="insight-text-list">
-        ${generateInsightSentences(entries).map(s => `<li>${s}</li>`).join('')}
-      </ul>
-    </div>
-
-    <div class="card">
       <h2 class="trend-title">My Asana Progress — Last 7 Days</h2>
       <div id="mini-chart-tabs" class="mini-chart-tabs"></div>
       <div id="mini-chart-grid" class="mini-chart-grid"></div>
     </div>
   `;
-
-  // A continuous calendar range (not just the days that happen to have an
-  // entry), so renderTrendChart can show a grey/zero marker for any gap day
-  // within the window instead of silently skipping straight over it.
-  const allDates = sortedDates(entries);
   const trendStart = stats.last30Dates.length ? stats.last30Dates[0] : allDates[0];
   const trendDates = [];
   if (trendStart) {

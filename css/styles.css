@@ -386,11 +386,12 @@ body.signin-page {
 .stat-tile { background: #fffdfa; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
 .stat-tile .stat-value { font-size: 24px; font-weight: var(--weight-semibold); color: var(--saffron); }
 .stat-tile .stat-label { font-size: 12px; color: var(--ink-muted); margin-top: 4px; font-weight: var(--weight-light); }
+.stat-tile-summary { display: flex; flex-direction: column; justify-content: center; gap: 6px; text-align: left; }
+.stat-summary-line { font-size: 12.5px; color: var(--ink); font-weight: var(--weight-regular); }
+.stat-summary-label { display: block; font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.02em; }
 
 .legend-row { display: flex; gap: 14px; font-size: 12px; color: var(--ink-muted); margin-top: 6px; flex-wrap: wrap; font-weight: var(--weight-light); }
 .legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
-
-.insight-text-list { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.7; font-weight: var(--weight-regular); }
 
 /* SVG charts (trend line, factor bars, mini asana charts) are built with JS
    and don't inherit page font settings by default - apply the same family here. */

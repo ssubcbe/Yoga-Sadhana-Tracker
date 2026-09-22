@@ -227,28 +227,6 @@ function factorBreakdown(entriesMap, factorKey) {
     .sort((a, b) => b.avg - a.avg);
 }
 
-function generateInsightSentences(entriesMap) {
-  const sentences = [];
-  const dates = sortedDates(entriesMap);
-  if (dates.length < 3) {
-    sentences.push('Log a few more days to start seeing patterns across moon phase, meals, kriyas and timing.');
-    return sentences;
-  }
-  BASE_FACTOR_KEYS.forEach((key) => {
-    const rows = factorBreakdown(entriesMap, key).filter(r => r.count >= 2);
-    if (rows.length < 2) return;
-    const best = rows[0];
-    const worst = rows[rows.length - 1];
-    if (best.avg - worst.avg >= 0.4) {
-      sentences.push(`${FACTORS[key].label}: practice reads easiest around "${best.label}" (avg ${best.avg.toFixed(1)}/4, n=${best.count}), toughest around "${worst.label}" (avg ${worst.avg.toFixed(1)}/4, n=${worst.count}).`);
-    }
-  });
-  if (!sentences.length) {
-    sentences.push('No strong pattern yet across the factors tracked - scores are fairly even. Keep logging daily to sharpen this.');
-  }
-  return sentences;
-}
-
 // ---------- The weekly Key Message (the headline insight) ----------
 // Part 1 looks for the best time-of-day x moon-phase combination in the last
 // 7 days (falling back to the single strongest factor if combos are too
@@ -600,7 +578,7 @@ const SHAPING_TOPICS = [
   { key: 'fasting', title: 'Fasting' },
   { key: 'showering', title: 'Showering' },
   { key: 'kriyas', title: 'Kriyas and Sadhanas' },
-  { key: 'menstrual', title: 'Menstrual Cycle' },
+  { key: 'menstrual', title: 'Menstrual Cycle', caption: 'Based on the last two cycles...' },
 ];
 const MOON_BAR_COLOR = '#F37021';
 const SHAPING_WINDOW_DAYS = 30;
@@ -1335,10 +1313,8 @@ function renderKriyaBox(container, entriesMap) {
 function renderShapingSection(container, entriesMap) {
   container.innerHTML = '';
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
-  const hasFemale = Object.values(entriesMap).some(e => e.sex === 'female');
-  const topics = SHAPING_TOPICS.filter(t => t.key !== 'menstrual' || hasFemale);
 
-  topics.forEach(topic => {
+  SHAPING_TOPICS.forEach(topic => {
     const cell = document.createElement('div');
     cell.className = 'factor-cell shaping-cell';
     cell.dataset.topic = topic.key;
