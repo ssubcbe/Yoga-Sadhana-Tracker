@@ -232,15 +232,35 @@ function factorBreakdown(entriesMap, factorKey) {
 // 7 days (falling back to the single strongest factor if combos are too
 // thin), and folds in a general note from a day that matches. Part 2 names
 // the asanas scoring lowest that week, as a concrete next action.
-function generateKeyMessage(entriesMap) {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const last7Dates = sortedDates(entriesMap).filter(d => d >= addDays(todayStr, -6));
-  const entries = last7Dates.map(d => entriesMap[d]).filter(Boolean);
+// Monday of the calendar week containing dateStr (ISO week start, not the
+// rolling "last 7 days" the rest of the app uses elsewhere).
+function mondayOf(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const day = d.getUTCDay(); // 0=Sun..6=Sat
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+function weekRange(mondayStr) {
+  return { start: mondayStr, end: addDays(mondayStr, 6) };
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// Same finding/improvement algorithm regardless of which week is passed in -
+// range = {start, end} (inclusive), weekLabel is how it reads in a sentence
+// ("this week" / "last week"). Also returns weakestKeys so a caller can
+// cross-reference against another week's weak asanas (see
+// generateCurrentWeekMessage below).
+function generateKeyMessage(entriesMap, range, weekLabel) {
+  weekLabel = weekLabel || 'this week';
+  const weekDates = sortedDates(entriesMap).filter(d => d >= range.start && d <= range.end);
+  const entries = weekDates.map(d => entriesMap[d]).filter(Boolean);
 
   if (entries.length < 3) {
     return {
-      finding: 'Log a few more days this week to unlock a personalized weekly finding.',
+      finding: `Log a few more days ${weekLabel} to unlock a personalized weekly finding.`,
       improvement: '',
+      weakestKeys: [],
     };
   }
 
@@ -259,25 +279,25 @@ function generateKeyMessage(entriesMap) {
     .sort((a, b) => b.avg - a.avg);
 
   let finding;
-  const last7Map = {}; last7Dates.forEach(d => last7Map[d] = entriesMap[d]);
+  const weekMap = {}; weekDates.forEach(d => weekMap[d] = entriesMap[d]);
 
   if (comboRows.length >= 2 && (comboRows[0].avg - comboRows[comboRows.length - 1].avg) >= 0.3) {
     const best = comboRows[0];
-    finding = `This week, practice reads easiest doing asanas in the ${best.time.toLowerCase()} during ${best.moon} (avg ${best.avg.toFixed(1)}/4).`;
+    finding = `${capitalize(weekLabel)}, practice reads easiest doing asanas in the ${best.time.toLowerCase()} during ${best.moon} (avg ${best.avg.toFixed(1)}/4).`;
     const noted = best.items.map(i => i.entry).find(e => e.generalNotes && e.generalNotes.trim());
     if (noted) finding += ` You noted: "${noted.generalNotes.trim()}" on one of those days.`;
   } else {
     let bestFactor = null;
     BASE_FACTOR_KEYS.forEach(key => {
-      const rows = factorBreakdown(last7Map, key).filter(r => r.count >= 1);
+      const rows = factorBreakdown(weekMap, key).filter(r => r.count >= 1);
       if (rows.length < 2) return;
       const gap = rows[0].avg - rows[rows.length - 1].avg;
       if (!bestFactor || gap > bestFactor.gap) bestFactor = { key, gap, best: rows[0], worst: rows[rows.length - 1] };
     });
     if (bestFactor && bestFactor.gap >= 0.3) {
-      finding = `This week, ${FACTORS[bestFactor.key].label.toLowerCase()} seems to matter most: "${bestFactor.best.label}" reads easiest (avg ${bestFactor.best.avg.toFixed(1)}/4) versus "${bestFactor.worst.label}" (avg ${bestFactor.worst.avg.toFixed(1)}/4).`;
+      finding = `${capitalize(weekLabel)}, ${FACTORS[bestFactor.key].label.toLowerCase()} seems to matter most: "${bestFactor.best.label}" reads easiest (avg ${bestFactor.best.avg.toFixed(1)}/4) versus "${bestFactor.worst.label}" (avg ${bestFactor.worst.avg.toFixed(1)}/4).`;
     } else {
-      finding = "This week's scores are fairly even across moon phase, meals, kriyas and timing - no strong single factor stands out yet.";
+      finding = `${capitalize(weekLabel)}'s scores are fairly even across moon phase, meals, kriyas and timing - no strong single factor stands out yet.`;
     }
   }
 
@@ -291,13 +311,38 @@ function generateKeyMessage(entriesMap) {
     .sort((a, b) => a.avg - b.avg);
 
   let improvement = '';
+  let weakestKeys = [];
   if (asanaAverages.length) {
     const weakest = asanaAverages.slice(0, Math.min(3, asanaAverages.length));
+    weakestKeys = weakest.map(a => a.key);
     const names = weakest.map(a => (ASANAS.find(x => x.key === a.key) || {}).name || a.key);
-    improvement = `Give extra attention to ${names.join(', ')} - lowest-scoring this week (avg ${weakest[0].avg.toFixed(1)}/4).`;
+    improvement = `Give extra attention to ${names.join(', ')} - lowest-scoring ${weekLabel} (avg ${weakest[0].avg.toFixed(1)}/4).`;
   }
 
-  return { finding, improvement };
+  return { finding, improvement, weakestKeys };
+}
+
+// The current week's box is progressive (whatever's been logged Monday
+// through today) and layers on one extra sentence cross-referencing last
+// week's weakest asanas - "the same logic used now" (generateKeyMessage,
+// unmodified) still drives both weeks' own finding/improvement.
+function generateCurrentWeekMessage(entriesMap, currentRange, lastRange) {
+  const current = generateKeyMessage(entriesMap, currentRange, 'this week');
+  const last = generateKeyMessage(entriesMap, lastRange, 'last week');
+
+  let advice = '';
+  if (last.weakestKeys.length) {
+    const lastNames = last.weakestKeys.map(k => (ASANAS.find(a => a.key === k) || {}).name || k);
+    const overlap = last.weakestKeys.filter(k => current.weakestKeys.includes(k));
+    if (overlap.length) {
+      const overlapNames = overlap.map(k => (ASANAS.find(a => a.key === k) || {}).name || k);
+      advice = `Building on last week: ${overlapNames.join(', ')} ${overlap.length > 1 ? 'were' : 'was'} weak last week too - keep watching ${overlap.length > 1 ? 'them' : 'it'} this week.`;
+    } else {
+      advice = `Last week's focus areas were ${lastNames.join(', ')} - worth checking in on how they're trending this week.`;
+    }
+  }
+
+  return { finding: current.finding, improvement: current.improvement, advice };
 }
 
 // ---------- SVG chart rendering ----------

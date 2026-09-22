@@ -437,29 +437,42 @@ function renderInsightsTab() {
     return;
   }
 
-  const keyMsg = generateKeyMessage(entries);
   // A continuous calendar range (not just the days that happen to have an
   // entry), so renderTrendChart can show a grey/zero marker for any gap day
   // within the window instead of silently skipping straight over it.
   const allDates = sortedDates(entries);
   const startedOn = allDates.length ? formatFullDate(allDates[0]) : '-';
 
-  root.innerHTML = `
-    <div class="card key-message-card">
-      <h2>This week's key message</h2>
-      <p class="key-message-finding">${keyMsg.finding}</p>
-      ${keyMsg.improvement ? `<p class="key-message-improvement">${keyMsg.improvement}</p>` : ''}
-    </div>
+  const thisMonday = mondayOf(todayStr());
+  const currentWeekFull = weekRange(thisMonday); // Mon-Sun, for the heading label
+  const currentWeekProgressive = { start: thisMonday, end: todayStr() }; // Mon-today, for the actual data
+  const lastRange = weekRange(addDays(thisMonday, -7));
+  const currentMsg = generateCurrentWeekMessage(entries, currentWeekProgressive, lastRange);
+  const lastMsg = generateKeyMessage(entries, lastRange, 'last week');
 
+  root.innerHTML = `
     <div class="stat-row">
       <div class="stat-tile"><div class="stat-value">${stats.todayScore !== null ? stats.todayScore.toFixed(1) + '/4' : '-'}</div><div class="stat-label">Today's avg</div></div>
       <div class="stat-tile"><div class="stat-value">${stats.avg7 !== null ? stats.avg7.toFixed(1) + '/4' : '-'}</div><div class="stat-label">7-day avg</div></div>
       <div class="stat-tile"><div class="stat-value">${stats.avg30 !== null ? stats.avg30.toFixed(1) + '/4' : '-'}</div><div class="stat-label">30-day avg</div></div>
       <div class="stat-tile"><div class="stat-value">${stats.streak}</div><div class="stat-label">Day streak</div></div>
       <div class="stat-tile stat-tile-summary">
-        <div class="stat-summary-line"><span class="stat-summary-label">Started on</span>${startedOn}</div>
-        <div class="stat-summary-line"><span class="stat-summary-label">Days recorded</span>${stats.totalDaysLogged}</div>
+        <div class="stat-summary-line"><span class="stat-summary-label">Started on</span><span class="stat-summary-value">${startedOn}</span></div>
+        <div class="stat-summary-line"><span class="stat-summary-label">Days recorded</span><span class="stat-summary-value">${stats.totalDaysLogged}</span></div>
       </div>
+    </div>
+
+    <div class="card key-message-card">
+      <h2 class="key-message-title">Current Week's (Mon to Sun) Key Message (${formatDDMMM(currentWeekFull.start)} - ${formatDDMMM(currentWeekFull.end)})</h2>
+      <p class="key-message-finding">${currentMsg.finding}</p>
+      ${currentMsg.improvement ? `<p class="key-message-improvement">${currentMsg.improvement}</p>` : ''}
+      ${currentMsg.advice ? `<p class="key-message-advice">${currentMsg.advice}</p>` : ''}
+    </div>
+
+    <div class="card key-message-card">
+      <h2 class="key-message-title">Last Week's (Mon to Sun) Key Message (${formatDDMMM(lastRange.start)} - ${formatDDMMM(lastRange.end)})</h2>
+      <p class="key-message-finding">${lastMsg.finding}</p>
+      ${lastMsg.improvement ? `<p class="key-message-improvement">${lastMsg.improvement}</p>` : ''}
     </div>
 
     <div class="card">

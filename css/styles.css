@@ -317,8 +317,10 @@ body.signin-page {
 .trend-arrow svg { display: block; }
 
 .key-message-card { background: linear-gradient(135deg, #fdf3e7, #fff); border: 1px solid var(--saffron); }
+.card h2.key-message-title { font-weight: var(--weight-bold); }
 .key-message-finding { font-size: 15px; line-height: 1.6; margin: 4px 0 10px; color: var(--ink); font-weight: var(--weight-regular); }
 .key-message-improvement { font-size: 14px; line-height: 1.6; margin: 0; color: var(--maroon); font-weight: var(--weight-semibold); }
+.key-message-advice { font-size: 14px; line-height: 1.6; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--ink); font-weight: var(--weight-regular); font-style: italic; }
 
 .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-right: 5px; vertical-align: middle; }
 .legend-diamond { border-radius: 2px; transform: rotate(45deg); display: inline-block; width: 9px; height: 9px; margin-right: 7px; }
@@ -387,8 +389,9 @@ body.signin-page {
 .stat-tile .stat-value { font-size: 24px; font-weight: var(--weight-semibold); color: var(--saffron); }
 .stat-tile .stat-label { font-size: 12px; color: var(--ink-muted); margin-top: 4px; font-weight: var(--weight-light); }
 .stat-tile-summary { display: flex; flex-direction: column; justify-content: center; gap: 6px; text-align: left; }
-.stat-summary-line { font-size: 12.5px; color: var(--ink); font-weight: var(--weight-regular); }
+.stat-summary-line { display: flex; flex-direction: column; }
 .stat-summary-label { display: block; font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.02em; }
+.stat-summary-value { font-size: 17px; color: var(--ink); font-weight: var(--weight-bold); }
 
 .legend-row { display: flex; gap: 14px; font-size: 12px; color: var(--ink-muted); margin-top: 6px; flex-wrap: wrap; font-weight: var(--weight-light); }
 .legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
