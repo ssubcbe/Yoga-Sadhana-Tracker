@@ -247,22 +247,19 @@ body.signin-page {
 .moon-stage-item.current { background: #f6d7ac; border: 2px solid var(--saffron); padding: 3px; }
 
 /* Each Morning/Evening box carries its own tab label (click to switch which
-   pose grid shows) plus its own "Showered before <Session> Asanas?" answer -
-   both boxes' shower answers stay at full legibility regardless of which
-   tab is active, since answering it isn't gated by which pose grid is
-   currently visible. Only the tab label itself (and the box background)
-   dims for the inactive tab - the old design also faded the shower
-   question to 55% opacity, which is what made it easy to miss. */
+   pose grid shows) plus its own "Showered before Asanas?" answer - both
+   boxes' shower answers are visible and editable at once. */
 .session-tabs { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; align-items: stretch; }
 .session-tab {
   flex: 1;
   padding: 12px 16px;
   border-right: 1px solid var(--border);
   background: #fff;
-  transition: background 0.15s;
+  opacity: 0.55;
+  transition: background 0.15s, opacity 0.15s;
 }
 .session-tab:last-child { border-right: none; }
-.session-tab.active { background: var(--border); }
+.session-tab.active { background: var(--border); opacity: 1; }
 .session-tab-label {
   color: var(--ink-muted);
   font-family: var(--font);
@@ -272,10 +269,8 @@ body.signin-page {
   margin-bottom: 10px;
 }
 .session-tab.active .session-tab-label { color: var(--ink); font-weight: var(--weight-semibold); }
-.session-shower-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 8px; border-radius: 6px; }
-.session-shower-row.unanswered { background: #fbeee0; box-shadow: 0 0 0 1px var(--saffron); }
+.session-shower-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .session-shower-label { font-size: 12px; color: var(--ink-muted); font-weight: var(--weight-light); }
-.session-shower-row.unanswered .session-shower-label { color: var(--maroon); font-weight: var(--weight-semibold); }
 
 .pose-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
 .pose-tile {

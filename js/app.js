@@ -2,7 +2,7 @@ let CURRENT_USER = null;
 let SELECTED_DATE = new Date().toISOString().slice(0, 10);
 let DRAFT = null; // in-memory entry being edited
 let dateEditMode = false; // false = show the "Today" badge, true = show the calendar input
-let activeSession = 'morning'; // which Yogasanas pose grid is showing - always starts on Morning, so it's predictable rather than flipping to Evening after noon
+let activeSession = new Date().getHours() < 12 ? 'morning' : 'evening'; // which Yogasanas tab is showing
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function nowTimeStr() { return new Date().toTimeString().slice(0, 5); }
@@ -197,7 +197,7 @@ function renderEntryForm() {
     </div>
 
     <div class="save-bar">
-      <button class="action-btn" id="save-entry-btn">Submit</button>
+      <button class="action-btn" id="save-entry-btn">Save today's entry</button>
     </div>
   `;
 
@@ -329,7 +329,7 @@ function renderSessionTab(session, title) {
   return `
     <div class="session-tab ${isActive ? 'active' : ''}">
       <div class="session-tab-label" data-session="${session}">${title}</div>
-      <div class="session-shower-row ${showered === null ? 'unanswered' : ''}">
+      <div class="session-shower-row">
         <span class="session-shower-label">Showered before Asanas?</span>
         <div class="yesno-row">
           <button type="button" class="yesno-btn ${showered === true ? 'selected' : ''}" data-showered-session="${session}" data-showered="yes">Yes</button>
