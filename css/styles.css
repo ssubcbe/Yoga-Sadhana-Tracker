@@ -334,12 +334,12 @@ body.signin-page {
    itself is caps), so this cell opts out of the grid's default uppercase h3. */
 .shaping-cell[data-topic="sun"] h3 { text-transform: none; }
 
-.sun-session-label { font-size: 12px; font-weight: var(--weight-semibold); color: var(--maroon); text-transform: uppercase; letter-spacing: 0.02em; margin: 12px 0 6px; }
-.sun-session-label:first-child { margin-top: 4px; }
-.sun-pie-row { display: flex; align-items: center; gap: 16px; justify-content: flex-start; }
-.sun-pie-legend { display: flex; flex-direction: column; gap: 4px; }
-.sun-legend-item { font-size: 12px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
-.sun-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+.sun-session-label { font-size: 18px; font-weight: var(--weight-regular); color: var(--ink); margin: 16px 0 10px; }
+.sun-session-label:first-child { margin-top: 6px; }
+.sun-pie-row { display: flex; align-items: center; gap: 20px; justify-content: flex-start; }
+.sun-pie-legend { display: flex; flex-direction: column; gap: 8px; }
+.sun-legend-item { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.sun-legend-swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
 .shaping-notes-space { min-height: 40px; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }

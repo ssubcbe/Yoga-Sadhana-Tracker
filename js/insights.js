@@ -786,8 +786,8 @@ let _pieSeq = 0;
 // that bucket, ranked highest-average first.
 function renderAsanaScorePie(container, buckets, session) {
   const total = 24;
-  const r = 58, cx = 62, cy = 62, size = 124;
-  const order = [4, 3, 2, 1];
+  const r = 66, cx = 70, cy = 70, size = 140;
+  const order = [1, 2, 3, 4]; // ascending, drawn clockwise from 12 o'clock - matches the reference mockup
   let angleCursor = 0;
   let svg = '';
   let legend = '';
@@ -797,24 +797,24 @@ function renderAsanaScorePie(container, buckets, session) {
     const count = buckets[score].length;
     const color = ASANA_BAR_RAMP[score - 1];
     const label = (RATING_SCALE.find(r2 => r2.value === score) || {}).label || score;
-    legend += `<div class="sun-legend-item"><span class="sun-legend-swatch" style="background:${color}"></span>${label} - ${count}</div>`;
+    legend += `<div class="sun-legend-item"><span class="sun-legend-swatch" style="background:${color}"></span>${label}</div>`;
     if (!count) return;
     const sweep = count / total * 360;
     const path = pieSlicePath(cx, cy, r, angleCursor, angleCursor + sweep);
     const labelPos = polarToCartesian(cx, cy, r * 0.62, angleCursor + sweep / 2);
-    svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="${score}" d="${path}" fill="${color}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
-    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="${score}" x="${labelPos.x}" y="${labelPos.y + 4}" font-size="12.5" font-weight="600" fill="#fff" text-anchor="middle" style="cursor:pointer">${count}</text>`;
+    svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="${score}" d="${path}" fill="${color}" style="cursor:pointer"/>`;
+    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="${score}" x="${labelPos.x}" y="${labelPos.y + 5}" font-size="15" font-weight="600" fill="#fff" text-anchor="middle" style="cursor:pointer">${count}</text>`;
     angleCursor += sweep;
   });
 
   const noneCount = buckets.none.length;
   if (noneCount) {
-    legend += `<div class="sun-legend-item"><span class="sun-legend-swatch" style="background:${NO_DATA_SLICE_COLOR}"></span>No data - ${noneCount}</div>`;
+    legend += `<div class="sun-legend-item"><span class="sun-legend-swatch" style="background:${NO_DATA_SLICE_COLOR}"></span>No data</div>`;
     const sweep = noneCount / total * 360;
     const path = pieSlicePath(cx, cy, r, angleCursor, angleCursor + sweep);
     const labelPos = polarToCartesian(cx, cy, r * 0.62, angleCursor + sweep / 2);
-    svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="none" d="${path}" fill="${NO_DATA_SLICE_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
-    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="none" x="${labelPos.x}" y="${labelPos.y + 4}" font-size="12.5" font-weight="600" fill="#464038" text-anchor="middle" style="cursor:pointer">${noneCount}</text>`;
+    svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="none" d="${path}" fill="${NO_DATA_SLICE_COLOR}" style="cursor:pointer"/>`;
+    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="none" x="${labelPos.x}" y="${labelPos.y + 5}" font-size="15" font-weight="600" fill="#464038" text-anchor="middle" style="cursor:pointer">${noneCount}</text>`;
   }
 
   container.innerHTML = `<div class="sun-pie-row">`
