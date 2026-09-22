@@ -244,7 +244,7 @@ body.signin-page {
   border: 1px solid var(--border);
   background: #fff;
 }
-.moon-stage-item.current { background: #f6d7ac; border: 2px solid var(--saffron); padding: 3px; }
+.moon-stage-item.current { background: #f6d7ac; border: 1px solid transparent; padding: 4px; }
 
 /* Each Morning/Evening box carries its own tab label (click to switch which
    pose grid shows) plus its own "Showered before Asanas?" answer - both
@@ -402,21 +402,24 @@ body.signin-page {
 
 /* Jump links to each Insights section - plain icon+label anchors to each
    section's id (no JS routing needed), evenly spaced across the row, no
-   box/border. Text matches .stat-summary-label's styling exactly. */
+   box/border. Text weight/size/caps matches a Moon-Phase-style shaping
+   cell's h3 title (.factor-cell h3: 14px, bold, uppercase); color and
+   hover-grow are this row's own. */
 .insight-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .insight-nav-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--ink-muted);
-  font-weight: var(--weight-light);
+  gap: 7px;
+  font-size: 14px;
+  color: #AF4D30;
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-decoration: none;
+  transition: font-size 0.15s;
 }
-.insight-nav-item svg { flex-shrink: 0; }
-.insight-nav-item:hover { color: var(--maroon); text-decoration: underline; }
+.insight-nav-item svg { flex-shrink: 0; width: 19px; height: 19px; }
+.insight-nav-item:hover { font-size: 16px; text-decoration: underline; }
 
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; scroll-margin-top: 14px; }
 .stat-row-note { font-size: 11px; font-weight: var(--weight-light); color: var(--ink-muted); text-align: left; margin: -10px 0 18px; }

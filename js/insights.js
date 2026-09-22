@@ -938,7 +938,7 @@ function computeFastingBreakdown(entriesMap, window) {
   });
 }
 
-const FASTING_BAR_COLOR = '#E8842A';
+const FASTING_BAR_COLOR = MOON_BAR_COLOR;
 
 // Same visual language as the Moon Phase bars (zoomed axis, value drawn
 // inside the bar), just 3 fixed rows and no row icon.
