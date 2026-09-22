@@ -326,12 +326,11 @@ function wireSmileyButtons(root) {
 function renderSessionTab(session, title) {
   const isActive = activeSession === session;
   const showered = DRAFT.showeredBeforeAsanas[session];
-  const sessionWord = session === 'morning' ? 'Morning' : 'Evening';
   return `
     <div class="session-tab ${isActive ? 'active' : ''}">
       <div class="session-tab-label" data-session="${session}">${title}</div>
       <div class="session-shower-row ${showered === null ? 'unanswered' : ''}">
-        <span class="session-shower-label">Showered before ${sessionWord} Asanas?</span>
+        <span class="session-shower-label">Showered before Asanas?</span>
         <div class="yesno-row">
           <button type="button" class="yesno-btn ${showered === true ? 'selected' : ''}" data-showered-session="${session}" data-showered="yes">Yes</button>
           <button type="button" class="yesno-btn ${showered === false ? 'selected' : ''}" data-showered-session="${session}" data-showered="no">No</button>
