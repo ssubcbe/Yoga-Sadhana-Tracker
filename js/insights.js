@@ -591,7 +591,11 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
 // Only Moon Phase is fully built out for now; the rest are placeholders to
 // fill in next, per topic, once each one's exact breakdown is decided.
 const SHAPING_TOPICS = [
-  { key: 'moon', title: 'Moon Phase' },
+  {
+    key: 'moon', title: 'Moon Phase',
+    caption: 'Based on the last 30 days.',
+    footer: 'Overall Score of Asanas during the recent phases of the Moon. Hover over the bar to find the Top and bottom performed Asanas.',
+  },
   { key: 'sun', title: 'Sun (Morning / Evening)' },
   { key: 'fasting', title: 'Fasting (After Fasting)' },
   { key: 'showering', title: 'Showering' },
@@ -731,7 +735,10 @@ function renderShapingSection(container, entriesMap) {
   topics.forEach(topic => {
     const cell = document.createElement('div');
     cell.className = 'factor-cell shaping-cell';
-    cell.innerHTML = `<h3>${topic.title}</h3><div class="shaping-body"></div>`;
+    cell.innerHTML = `<h3>${topic.title}</h3>`
+      + (topic.caption ? `<p class="insight-sub">${topic.caption}</p>` : '')
+      + `<div class="shaping-body"></div>`
+      + (topic.footer ? `<p class="insight-sub shaping-footer">${topic.footer}</p>` : '');
     container.appendChild(cell);
     const body = cell.querySelector('.shaping-body');
     if (topic.key === 'moon') {

@@ -461,7 +461,6 @@ function renderInsightsTab() {
 
     <div class="card">
       <h2>What's shaping your practice</h2>
-      <p class="insight-sub">Based on the last 30 days.</p>
       <div id="shaping-grid" class="factor-grid"></div>
     </div>
 
