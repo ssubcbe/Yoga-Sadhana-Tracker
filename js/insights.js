@@ -1053,8 +1053,8 @@ function computeShowerSessionStats(entries, session) {
 }
 
 const SHOWER_SESSIONS = [
-  { key: 'morning', label: 'Morning (Pratah Sandhya)' },
-  { key: 'evening', label: 'Evening (Sayam Sandhya)' },
+  { key: 'morning', label: 'Morning (Pratah Sandhya)', line1: 'Morning', line2: '(Pratah Sandhya)' },
+  { key: 'evening', label: 'Evening (Sayam Sandhya)', line1: 'Evening', line2: '(Sayam Sandhya)' },
 ];
 const SHOWER_YES_COLOR = '#4CAF50';
 const SHOWER_NO_COLOR = '#a8a196';
@@ -1078,7 +1078,7 @@ function renderShowerDumbbellChart(container, sessionStats, rangeLabel) {
   if (domainMax - domainMin < 0.1) domainMin = Math.max(1, domainMax - 0.4);
 
   const w = container.clientWidth || 440;
-  const rowH = 60, padT = 16, padB = 30;
+  const rowH = 66, padT = 16, padB = 30;
   const labelW = 138, leftPad = 10, rightPad = 20;
   const chartLeft = leftPad + labelW;
   const chartRight = w - rightPad;
@@ -1101,7 +1101,8 @@ function renderShowerDumbbellChart(container, sessionStats, rangeLabel) {
   SHOWER_SESSIONS.forEach((s, i) => {
     const y = padT + i * rowH;
     const cy = y + rowH / 2;
-    rowsSvg += `<text x="${leftPad}" y="${cy + 4}" font-size="11.5" fill="#464038">${s.label}</text>`;
+    rowsSvg += `<text x="${leftPad}" y="${cy - 3}" font-size="11.5" fill="#464038">${s.line1}</text>`;
+    rowsSvg += `<text x="${leftPad}" y="${cy + 11}" font-size="10" fill="#464038">${s.line2}</text>`;
     const st = sessionStats[s.key];
     if (st.yes.avg === null && st.no.avg === null) {
       rowsSvg += `<text x="${chartLeft + 6}" y="${cy + 4}" font-size="11" fill="#a8a196">No data</text>`;
@@ -1109,16 +1110,23 @@ function renderShowerDumbbellChart(container, sessionStats, rangeLabel) {
     }
     const noX = st.no.avg !== null ? xFor(st.no.avg) : null;
     const yesX = st.yes.avg !== null ? xFor(st.yes.avg) : null;
+    // The two averages can land within a couple pixels of each other (or
+    // exactly on top) - nudge the dots apart vertically so both stay visible
+    // and their value labels don't collide, instead of silently hiding one
+    // underneath the other.
+    const overlapping = noX !== null && yesX !== null && Math.abs(noX - yesX) < 16;
+    const noCy = overlapping ? cy - 8 : cy;
+    const yesCy = overlapping ? cy + 8 : cy;
     if (noX !== null && yesX !== null) {
-      rowsSvg += `<line x1="${Math.min(noX, yesX)}" x2="${Math.max(noX, yesX)}" y1="${cy}" y2="${cy}" stroke="#c9c2b4" stroke-width="2"/>`;
+      rowsSvg += `<line x1="${noX}" x2="${yesX}" y1="${noCy}" y2="${yesCy}" stroke="#c9c2b4" stroke-width="2"/>`;
     }
     if (noX !== null) {
-      rowsSvg += `<circle class="shower-dot" data-chart="${chartId}" data-session="${s.key}" data-group="no" cx="${noX}" cy="${cy}" r="7" fill="${SHOWER_NO_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
-      rowsSvg += `<text x="${noX}" y="${cy - 13}" font-size="10.5" font-weight="600" fill="#464038" text-anchor="middle" style="pointer-events:none">${st.no.avg.toFixed(1)}</text>`;
+      rowsSvg += `<circle class="shower-dot" data-chart="${chartId}" data-session="${s.key}" data-group="no" cx="${noX}" cy="${noCy}" r="7" fill="${SHOWER_NO_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
+      rowsSvg += `<text x="${noX}" y="${noCy - 13}" font-size="10.5" font-weight="600" fill="#464038" text-anchor="middle" style="pointer-events:none">${st.no.avg.toFixed(1)}</text>`;
     }
     if (yesX !== null) {
-      rowsSvg += `<circle class="shower-dot" data-chart="${chartId}" data-session="${s.key}" data-group="yes" cx="${yesX}" cy="${cy}" r="7" fill="${SHOWER_YES_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
-      rowsSvg += `<text x="${yesX}" y="${cy + 22}" font-size="10.5" font-weight="600" fill="#464038" text-anchor="middle" style="pointer-events:none">${st.yes.avg.toFixed(1)}</text>`;
+      rowsSvg += `<circle class="shower-dot" data-chart="${chartId}" data-session="${s.key}" data-group="yes" cx="${yesX}" cy="${yesCy}" r="7" fill="${SHOWER_YES_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
+      rowsSvg += `<text x="${yesX}" y="${yesCy + 22}" font-size="10.5" font-weight="600" fill="#464038" text-anchor="middle" style="pointer-events:none">${st.yes.avg.toFixed(1)}</text>`;
     }
   });
 
