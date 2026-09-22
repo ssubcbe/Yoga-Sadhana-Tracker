@@ -332,14 +332,13 @@ body.signin-page {
 .shaping-caption { color: var(--ink-muted); font-size: 13px; font-weight: var(--weight-light); margin: 0; }
 
 /* Trikala Sandhya box: a compact row label (matches Moon Phase's row-label
-   size) above each session's pair of pies, left-oriented, no legend - the
-   count already sits inside each slice. */
+   size) above each session's pair of pies, centered and evenly spaced, no
+   legend - the count already sits inside each slice. */
 .sun-row-label { font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--maroon); text-transform: uppercase; letter-spacing: 0.02em; margin: 12px 0 6px; }
 .sun-row-label:first-child { margin-top: 2px; }
-.sun-range-row { display: flex; gap: 22px; justify-content: flex-start; }
+.sun-range-row { display: flex; justify-content: space-evenly; }
 .sun-pie-col { display: flex; flex-direction: column; align-items: center; }
 .sun-range-caption { font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); margin-top: 4px; }
-.shaping-notes-space { min-height: 30px; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {

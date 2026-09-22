@@ -788,7 +788,7 @@ let _pieSeq = 0;
 // ranked highest-average first.
 function renderAsanaScorePie(container, buckets, tooltipRangeLabel) {
   const total = 24;
-  const r = 44, cx = 48, cy = 48, size = 96;
+  const r = 56, cx = 60, cy = 60, size = 120;
   const order = [1, 2, 3, 4]; // ascending, drawn clockwise from 12 o'clock
   let angleCursor = 0;
   let svg = '';
@@ -802,7 +802,7 @@ function renderAsanaScorePie(container, buckets, tooltipRangeLabel) {
     const path = pieSlicePath(cx, cy, r, angleCursor, angleCursor + sweep);
     const labelPos = polarToCartesian(cx, cy, r * 0.6, angleCursor + sweep / 2);
     svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="${score}" d="${path}" fill="${color}" style="cursor:pointer"/>`;
-    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="${score}" x="${labelPos.x}" y="${labelPos.y + 4}" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle" style="cursor:pointer">${count}</text>`;
+    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="${score}" x="${labelPos.x}" y="${labelPos.y + 5}" font-size="14" font-weight="600" fill="#fff" text-anchor="middle" style="cursor:pointer">${count}</text>`;
     angleCursor += sweep;
   });
 
@@ -812,7 +812,7 @@ function renderAsanaScorePie(container, buckets, tooltipRangeLabel) {
     const path = pieSlicePath(cx, cy, r, angleCursor, angleCursor + sweep);
     const labelPos = polarToCartesian(cx, cy, r * 0.6, angleCursor + sweep / 2);
     svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="none" d="${path}" fill="${NO_DATA_SLICE_COLOR}" style="cursor:pointer"/>`;
-    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="none" x="${labelPos.x}" y="${labelPos.y + 4}" font-size="11.5" font-weight="600" fill="#464038" text-anchor="middle" style="cursor:pointer">${noneCount}</text>`;
+    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="none" x="${labelPos.x}" y="${labelPos.y + 5}" font-size="14" font-weight="600" fill="#464038" text-anchor="middle" style="cursor:pointer">${noneCount}</text>`;
   }
 
   container.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${svg}</svg>`;
@@ -855,7 +855,7 @@ function renderTrikalaSandhyaBox(container, entriesMap) {
     });
     html += `</div>`;
   });
-  html += `<div class="shaping-notes-space"></div>`;
+  html += `<p class="insight-sub shaping-footer">See how many and which Asanas you have enjoyed practising in the morning or evening. Simply hover over the relevant pie chart to explore your practice over the last 7 days or 30 days.</p>`;
   container.innerHTML = html;
 
   TRIKALA_SESSIONS.forEach(s => {
