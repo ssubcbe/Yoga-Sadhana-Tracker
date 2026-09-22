@@ -330,17 +330,16 @@ body.signin-page {
 .factor-cell h3 { font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 2px; }
 .shaping-cell .empty-state { padding: 34px 0; }
 .shaping-caption { color: var(--ink-muted); font-size: 13px; font-weight: var(--weight-light); margin: 0; }
-/* Title text is typed with its own exact casing (only "TRIKALA SANDHYA"
-   itself is caps), so this cell opts out of the grid's default uppercase h3. */
-.shaping-cell[data-topic="sun"] h3 { text-transform: none; }
 
-.sun-session-label { font-size: 18px; font-weight: var(--weight-regular); color: var(--ink); margin: 16px 0 10px; }
-.sun-session-label:first-child { margin-top: 6px; }
-.sun-pie-row { display: flex; align-items: center; gap: 20px; justify-content: flex-start; }
-.sun-pie-legend { display: flex; flex-direction: column; gap: 8px; }
-.sun-legend-item { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
-.sun-legend-swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.shaping-notes-space { min-height: 40px; }
+/* Trikala Sandhya box: a compact row label (matches Moon Phase's row-label
+   size) above each session's pair of pies, left-oriented, no legend - the
+   count already sits inside each slice. */
+.sun-row-label { font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--maroon); text-transform: uppercase; letter-spacing: 0.02em; margin: 12px 0 6px; }
+.sun-row-label:first-child { margin-top: 2px; }
+.sun-range-row { display: flex; gap: 22px; justify-content: flex-start; }
+.sun-pie-col { display: flex; flex-direction: column; align-items: center; }
+.sun-range-caption { font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); margin-top: 4px; }
+.shaping-notes-space { min-height: 30px; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {

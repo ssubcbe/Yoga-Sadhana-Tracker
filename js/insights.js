@@ -596,13 +596,7 @@ const SHAPING_TOPICS = [
     caption: 'Based on the last 30 days.',
     footer: 'Overall Score of Asanas during the recent phases of the Moon. Hover over the bar to find the Top and bottom performed Asanas.',
   },
-  {
-    // Title is typed with its own exact casing - only "TRIKALA SANDHYA" is
-    // caps, so this h3 opts out of the usual uppercase text-transform (see
-    // .shaping-cell[data-topic="sun"] h3 in styles.css).
-    key: 'sun', title: 'TRIKALA SANDHYA - Morning (Pratah Sandhya) / Evening (Sayam Sandhya)',
-    caption: 'Based on the last 30 days.',
-  },
+  { key: 'sun', title: 'Trikala Sandhya' },
   { key: 'fasting', title: 'Fasting (After Fasting)' },
   { key: 'showering', title: 'Showering' },
   { key: 'kriyas', title: 'Kriyas and Sadhanas' },
@@ -733,10 +727,19 @@ function renderMoonPhaseChart(container, entries) {
 }
 
 // ---------- "Trikala Sandhya" box: Morning/Evening asana-count pie charts ----------
+// 1-1.5 -> 1, 1.5-2.5 -> 2, 2.5-3.5 -> 3, above 3.5 -> 4.
+function scoreBucketFromAvg(avg) {
+  if (avg <= 1.5) return 1;
+  if (avg <= 2.5) return 2;
+  if (avg <= 3.5) return 3;
+  return 4;
+}
+
 // Groups all 24 asanas into the four rating buckets (plus a 5th "no data"
-// bucket, so counts always sum to 24) by each asana's own 30-day average
-// rating within one session only - morning ratings never influence the
-// evening pie and vice versa.
+// bucket, so counts always sum to 24) by each asana's own average rating,
+// within one session only - morning ratings never influence the evening pie
+// and vice versa - over whichever entries are passed in (a 30-day or 7-day
+// slice, picked by the caller).
 function computeSessionAsanaBuckets(entries, session) {
   const totals = {};
   ASANAS.forEach(a => { totals[a.key] = { sum: 0, count: 0 }; });
@@ -753,8 +756,7 @@ function computeSessionAsanaBuckets(entries, session) {
     const t = totals[a.key];
     if (!t.count) { buckets.none.push({ name: a.name, avg: null }); return; }
     const avg = t.sum / t.count;
-    const bucket = Math.max(1, Math.min(4, Math.round(avg)));
-    buckets[bucket].push({ name: a.name, avg });
+    buckets[scoreBucketFromAvg(avg)].push({ name: a.name, avg });
   });
   [1, 2, 3, 4].forEach(k => buckets[k].sort((a, b) => b.avg - a.avg));
   return buckets;
@@ -781,74 +783,88 @@ function pieSlicePath(cx, cy, r, startAngle, endAngle) {
 const NO_DATA_SLICE_COLOR = '#d7d2c9';
 let _pieSeq = 0;
 
-// One pie (left-oriented, legend to its right) for a single session's 24
-// asanas. Hovering either the wedge or its count label shows the asanas in
-// that bucket, ranked highest-average first.
-function renderAsanaScorePie(container, buckets, session) {
+// Just the pie itself (no legend - the count already sits inside each
+// slice). Hovering a wedge or its count label shows that bucket's asanas,
+// ranked highest-average first.
+function renderAsanaScorePie(container, buckets, tooltipRangeLabel) {
   const total = 24;
-  const r = 66, cx = 70, cy = 70, size = 140;
-  const order = [1, 2, 3, 4]; // ascending, drawn clockwise from 12 o'clock - matches the reference mockup
+  const r = 44, cx = 48, cy = 48, size = 96;
+  const order = [1, 2, 3, 4]; // ascending, drawn clockwise from 12 o'clock
   let angleCursor = 0;
   let svg = '';
-  let legend = '';
   const pieId = 'pie' + (_pieSeq++);
 
   order.forEach(score => {
     const count = buckets[score].length;
-    const color = ASANA_BAR_RAMP[score - 1];
-    const label = (RATING_SCALE.find(r2 => r2.value === score) || {}).label || score;
-    legend += `<div class="sun-legend-item"><span class="sun-legend-swatch" style="background:${color}"></span>${label}</div>`;
     if (!count) return;
+    const color = ASANA_BAR_RAMP[score - 1];
     const sweep = count / total * 360;
     const path = pieSlicePath(cx, cy, r, angleCursor, angleCursor + sweep);
-    const labelPos = polarToCartesian(cx, cy, r * 0.62, angleCursor + sweep / 2);
+    const labelPos = polarToCartesian(cx, cy, r * 0.6, angleCursor + sweep / 2);
     svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="${score}" d="${path}" fill="${color}" style="cursor:pointer"/>`;
-    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="${score}" x="${labelPos.x}" y="${labelPos.y + 5}" font-size="15" font-weight="600" fill="#fff" text-anchor="middle" style="cursor:pointer">${count}</text>`;
+    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="${score}" x="${labelPos.x}" y="${labelPos.y + 4}" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle" style="cursor:pointer">${count}</text>`;
     angleCursor += sweep;
   });
 
   const noneCount = buckets.none.length;
   if (noneCount) {
-    legend += `<div class="sun-legend-item"><span class="sun-legend-swatch" style="background:${NO_DATA_SLICE_COLOR}"></span>No data</div>`;
     const sweep = noneCount / total * 360;
     const path = pieSlicePath(cx, cy, r, angleCursor, angleCursor + sweep);
-    const labelPos = polarToCartesian(cx, cy, r * 0.62, angleCursor + sweep / 2);
+    const labelPos = polarToCartesian(cx, cy, r * 0.6, angleCursor + sweep / 2);
     svg += `<path class="asana-pie-slice" data-pie="${pieId}" data-bucket="none" d="${path}" fill="${NO_DATA_SLICE_COLOR}" style="cursor:pointer"/>`;
-    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="none" x="${labelPos.x}" y="${labelPos.y + 5}" font-size="15" font-weight="600" fill="#464038" text-anchor="middle" style="cursor:pointer">${noneCount}</text>`;
+    svg += `<text class="asana-pie-count" data-pie="${pieId}" data-bucket="none" x="${labelPos.x}" y="${labelPos.y + 4}" font-size="11.5" font-weight="600" fill="#464038" text-anchor="middle" style="cursor:pointer">${noneCount}</text>`;
   }
 
-  container.innerHTML = `<div class="sun-pie-row">`
-    + `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${svg}</svg>`
-    + `<div class="sun-pie-legend">${legend}</div>`
-    + `</div>`;
+  container.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${svg}</svg>`;
 
   container.querySelectorAll(`[data-pie="${pieId}"]`).forEach(el => {
     const score = el.dataset.bucket;
     const items = score === 'none' ? buckets.none : buckets[score];
     el.addEventListener('mousemove', (e) => {
       const heading = score === 'none'
-        ? 'No data in the last 30 days'
+        ? `No data in the ${tooltipRangeLabel}`
         : `${(RATING_SCALE.find(r2 => r2.value === Number(score)) || {}).label} (score ${score})`;
       const names = items.map(a => a.avg === null ? a.name : `${a.name} (${a.avg.toFixed(1)})`).join(', ') || '-';
-      showTip(e, `<strong>${heading}</strong><br>${items.length} of 24 asanas<br>${names}`);
+      showTip(e, `<strong>${heading}</strong><br>${items.length} of 24 asanas - ${tooltipRangeLabel}<br>${names}`);
     });
     el.addEventListener('mouseleave', hideTip);
   });
 }
 
-function renderTrikalaSandhyaBox(container, entries) {
-  const morningBuckets = computeSessionAsanaBuckets(entries, 'morning');
-  const eveningBuckets = computeSessionAsanaBuckets(entries, 'evening');
+const TRIKALA_SESSIONS = [
+  { key: 'morning', label: 'Morning (Pratah Sandhya)' },
+  { key: 'evening', label: 'Evening (Sayam Sandhya)' },
+];
+const TRIKALA_RANGES = [
+  { key: '30', days: 30, caption: 'Last 30 Days' },
+  { key: '7', days: 7, caption: 'Last 7 Days' },
+];
 
-  container.innerHTML = `
-    <div class="sun-session-label">Morning (Pratah Sandhya)</div>
-    <div class="sun-pie-slot" data-slot="morning"></div>
-    <div class="sun-session-label">Evening (Sayam Sandhya)</div>
-    <div class="sun-pie-slot" data-slot="evening"></div>
-    <div class="shaping-notes-space"></div>
-  `;
-  renderAsanaScorePie(container.querySelector('[data-slot="morning"]'), morningBuckets, 'morning');
-  renderAsanaScorePie(container.querySelector('[data-slot="evening"]'), eveningBuckets, 'evening');
+function renderTrikalaSandhyaBox(container, entriesMap) {
+  const entriesByRange = {};
+  TRIKALA_RANGES.forEach(rg => { entriesByRange[rg.key] = lastNDaysEntries(entriesMap, rg.days); });
+
+  let html = '';
+  TRIKALA_SESSIONS.forEach(s => {
+    html += `<div class="sun-row-label">${s.label}</div><div class="sun-range-row">`;
+    TRIKALA_RANGES.forEach(rg => {
+      html += `<div class="sun-pie-col">`
+        + `<div class="sun-pie-slot" data-slot="${s.key}-${rg.key}"></div>`
+        + `<div class="sun-range-caption">${rg.caption}</div>`
+        + `</div>`;
+    });
+    html += `</div>`;
+  });
+  html += `<div class="shaping-notes-space"></div>`;
+  container.innerHTML = html;
+
+  TRIKALA_SESSIONS.forEach(s => {
+    TRIKALA_RANGES.forEach(rg => {
+      const buckets = computeSessionAsanaBuckets(entriesByRange[rg.key], s.key);
+      const slot = container.querySelector(`[data-slot="${s.key}-${rg.key}"]`);
+      renderAsanaScorePie(slot, buckets, rg.caption.toLowerCase());
+    });
+  });
 }
 
 function renderShapingSection(container, entriesMap) {
@@ -870,7 +886,7 @@ function renderShapingSection(container, entriesMap) {
     if (topic.key === 'moon') {
       renderMoonPhaseChart(body, entries);
     } else if (topic.key === 'sun') {
-      renderTrikalaSandhyaBox(body, entries);
+      renderTrikalaSandhyaBox(body, entriesMap);
     } else {
       body.innerHTML = '<div class="empty-state">Coming soon.</div>';
     }
