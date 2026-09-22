@@ -340,6 +340,10 @@ body.signin-page {
 .sun-pie-col { display: flex; flex-direction: column; align-items: center; }
 .sun-range-caption { font-size: 11px; color: var(--ink-muted); font-weight: var(--weight-light); margin-top: 4px; }
 
+.shower-legend { display: flex; gap: 16px; justify-content: center; margin-top: 2px; font-size: 11px; color: var(--ink-muted); }
+.shower-legend-item { display: flex; align-items: center; gap: 5px; }
+.shower-legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {
   font-family: var(--font);

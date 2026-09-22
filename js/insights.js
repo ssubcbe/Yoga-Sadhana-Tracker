@@ -1019,6 +1019,166 @@ function renderFastingBox(container, entriesMap) {
   container.appendChild(finding);
 }
 
+// ---------- "Showering" box: dumbbell chart of showered vs. not, per session ----------
+// One dot per group (showered / did not shower) rather than a bar, so this
+// reads differently from the Moon Phase / Fasting bar charts and the
+// Trikala Sandhya pies - deliberately a different chart type for the same
+// underlying "avg score by category" idea.
+function computeShowerSessionStats(entries, session) {
+  const groups = { yes: { scores: [], asanaTotals: {} }, no: { scores: [], asanaTotals: {} } };
+  entries.forEach(entry => {
+    const showered = entry.showeredBeforeAsanas && entry.showeredBeforeAsanas[session];
+    if (showered !== true && showered !== false) return; // unanswered - excluded from both groups
+    const ratings = entry.asanaRatings && entry.asanaRatings[session];
+    const keys = ratings ? Object.keys(ratings) : [];
+    if (!keys.length) return; // session wasn't practiced that day - no performance to attribute
+    const vals = keys.map(k => ratings[k]);
+    const score = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const g = groups[showered ? 'yes' : 'no'];
+    g.scores.push(score);
+    keys.forEach(key => {
+      const t = g.asanaTotals[key] || (g.asanaTotals[key] = { sum: 0, count: 0 });
+      t.sum += ratings[key]; t.count += 1;
+    });
+  });
+  const build = (g) => {
+    const avg = g.scores.length ? g.scores.reduce((a, b) => a + b, 0) / g.scores.length : null;
+    const asanaAverages = Object.entries(g.asanaTotals).map(([key, t]) => ({
+      name: (ASANAS.find(a => a.key === key) || {}).name || key,
+      avg: t.sum / t.count,
+    })).sort((a, b) => b.avg - a.avg);
+    return { avg, count: g.scores.length, top3: asanaAverages.slice(0, 3), bottom3: asanaAverages.slice(-3).reverse() };
+  };
+  return { yes: build(groups.yes), no: build(groups.no) };
+}
+
+const SHOWER_SESSIONS = [
+  { key: 'morning', label: 'Morning (Pratah Sandhya)' },
+  { key: 'evening', label: 'Evening (Sayam Sandhya)' },
+];
+const SHOWER_YES_COLOR = '#4CAF50';
+const SHOWER_NO_COLOR = '#a8a196';
+
+function renderShowerDumbbellChart(container, sessionStats, rangeLabel) {
+  const allVals = [];
+  SHOWER_SESSIONS.forEach(s => {
+    const st = sessionStats[s.key];
+    if (st.yes.avg !== null) allVals.push(st.yes.avg);
+    if (st.no.avg !== null) allVals.push(st.no.avg);
+  });
+  if (!allVals.length) {
+    container.innerHTML = '<div class="empty-state">Not enough shower data logged in the last 30 days yet.</div>';
+    return;
+  }
+  let domainMin = Math.round((Math.floor(Math.min(...allVals) * 10) / 10 - 0.1) * 100) / 100;
+  let domainMax = Math.round((Math.ceil(Math.max(...allVals) * 10) / 10) * 100) / 100;
+  domainMin = Math.max(1, domainMin);
+  if (domainMax - domainMin < 0.4) domainMax = domainMin + 0.4;
+  domainMax = Math.min(4, domainMax);
+  if (domainMax - domainMin < 0.1) domainMin = Math.max(1, domainMax - 0.4);
+
+  const w = container.clientWidth || 440;
+  const rowH = 60, padT = 16, padB = 30;
+  const labelW = 138, leftPad = 10, rightPad = 20;
+  const chartLeft = leftPad + labelW;
+  const chartRight = w - rightPad;
+  const trackW = Math.max(20, chartRight - chartLeft);
+  const h = padT + SHOWER_SESSIONS.length * rowH + padB;
+  const xFor = (v) => Math.round((chartLeft + (v - domainMin) / (domainMax - domainMin) * trackW) * 100) / 100;
+
+  let gridSvg = '';
+  const tickCount = 4;
+  for (let i = 0; i <= tickCount; i++) {
+    const t = domainMin + (domainMax - domainMin) * i / tickCount;
+    const x = xFor(t);
+    gridSvg += `<line x1="${x}" x2="${x}" y1="${padT}" y2="${h - padB}" stroke="#e6dcd0" stroke-width="1"/>`;
+    gridSvg += `<text x="${x}" y="${h - padB + 16}" font-size="10" fill="#464038" text-anchor="middle">${Math.round(t * 100) / 100}</text>`;
+  }
+  gridSvg += `<line x1="${chartLeft}" x2="${chartLeft}" y1="${padT}" y2="${h - padB}" stroke="#1a1a1a" stroke-width="1.6"/>`;
+
+  const chartId = 'shower' + (_pieSeq++);
+  let rowsSvg = '';
+  SHOWER_SESSIONS.forEach((s, i) => {
+    const y = padT + i * rowH;
+    const cy = y + rowH / 2;
+    rowsSvg += `<text x="${leftPad}" y="${cy + 4}" font-size="11.5" fill="#464038">${s.label}</text>`;
+    const st = sessionStats[s.key];
+    if (st.yes.avg === null && st.no.avg === null) {
+      rowsSvg += `<text x="${chartLeft + 6}" y="${cy + 4}" font-size="11" fill="#a8a196">No data</text>`;
+      return;
+    }
+    const noX = st.no.avg !== null ? xFor(st.no.avg) : null;
+    const yesX = st.yes.avg !== null ? xFor(st.yes.avg) : null;
+    if (noX !== null && yesX !== null) {
+      rowsSvg += `<line x1="${Math.min(noX, yesX)}" x2="${Math.max(noX, yesX)}" y1="${cy}" y2="${cy}" stroke="#c9c2b4" stroke-width="2"/>`;
+    }
+    if (noX !== null) {
+      rowsSvg += `<circle class="shower-dot" data-chart="${chartId}" data-session="${s.key}" data-group="no" cx="${noX}" cy="${cy}" r="7" fill="${SHOWER_NO_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
+      rowsSvg += `<text x="${noX}" y="${cy - 13}" font-size="10.5" font-weight="600" fill="#464038" text-anchor="middle" style="pointer-events:none">${st.no.avg.toFixed(1)}</text>`;
+    }
+    if (yesX !== null) {
+      rowsSvg += `<circle class="shower-dot" data-chart="${chartId}" data-session="${s.key}" data-group="yes" cx="${yesX}" cy="${cy}" r="7" fill="${SHOWER_YES_COLOR}" stroke="#fffdfa" stroke-width="1.5" style="cursor:pointer"/>`;
+      rowsSvg += `<text x="${yesX}" y="${cy + 22}" font-size="10.5" font-weight="600" fill="#464038" text-anchor="middle" style="pointer-events:none">${st.yes.avg.toFixed(1)}</text>`;
+    }
+  });
+
+  container.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${gridSvg}${rowsSvg}</svg>`
+    + `<div class="shower-legend">`
+    + `<span class="shower-legend-item"><span class="shower-legend-dot" style="background:${SHOWER_NO_COLOR}"></span>No shower</span>`
+    + `<span class="shower-legend-item"><span class="shower-legend-dot" style="background:${SHOWER_YES_COLOR}"></span>Showered</span>`
+    + `</div>`;
+
+  container.querySelectorAll(`.shower-dot[data-chart="${chartId}"]`).forEach(el => {
+    const session = el.dataset.session, group = el.dataset.group;
+    const stats = sessionStats[session][group];
+    el.addEventListener('mousemove', (e) => {
+      const fmt = (list) => list.map(a => `${a.name} (${a.avg.toFixed(1)})`).join(', ') || '-';
+      const sessLabel = (SHOWER_SESSIONS.find(s => s.key === session) || {}).label;
+      const groupLabel = group === 'yes' ? 'Showered before asanas' : 'Did not shower before asanas';
+      showTip(e, `<strong>${sessLabel} - ${groupLabel}</strong><br>Avg: ${stats.avg.toFixed(2)} / 4 (n=${stats.count}) - ${rangeLabel}`
+        + `<br>Top asanas: ${fmt(stats.top3)}`
+        + `<br>Low asanas: ${fmt(stats.bottom3)}`);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+function showerFindingSentence(sessionStats, rangeLabel) {
+  const parts = [];
+  SHOWER_SESSIONS.forEach(s => {
+    const st = sessionStats[s.key];
+    if (st.yes.avg === null || st.no.avg === null) return;
+    const diff = st.yes.avg - st.no.avg;
+    if (Math.abs(diff) < 0.05) return;
+    const better = diff > 0 ? 'Showering before practice' : 'Not showering first';
+    parts.push(`${s.label.split(' ')[0]}: ${better} read easier (${st.yes.avg.toFixed(1)} showered vs ${st.no.avg.toFixed(1)} not, n=${st.yes.count}/${st.no.count}).`);
+  });
+  if (!parts.length) return `Showering made little difference to practice over the ${rangeLabel} - scores were close either way.`;
+  return parts.join(' ');
+}
+
+function renderShowerBox(container, entriesMap) {
+  const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
+  const sessionStats = {
+    morning: computeShowerSessionStats(entries, 'morning'),
+    evening: computeShowerSessionStats(entries, 'evening'),
+  };
+
+  const caption = document.createElement('p');
+  caption.className = 'shaping-caption';
+  caption.textContent = 'Based on the last 30 days.';
+  container.appendChild(caption);
+
+  const chartDiv = document.createElement('div');
+  container.appendChild(chartDiv);
+  renderShowerDumbbellChart(chartDiv, sessionStats, 'last 30 days');
+
+  const finding = document.createElement('p');
+  finding.className = 'insight-sub shaping-footer';
+  finding.textContent = showerFindingSentence(sessionStats, 'last 30 days');
+  container.appendChild(finding);
+}
+
 function renderShapingSection(container, entriesMap) {
   container.innerHTML = '';
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
@@ -1041,6 +1201,8 @@ function renderShapingSection(container, entriesMap) {
       renderTrikalaSandhyaBox(body, entriesMap);
     } else if (topic.key === 'fasting') {
       renderFastingBox(body, entriesMap);
+    } else if (topic.key === 'showering') {
+      renderShowerBox(body, entriesMap);
     } else {
       body.innerHTML = '<div class="empty-state">Coming soon.</div>';
     }
