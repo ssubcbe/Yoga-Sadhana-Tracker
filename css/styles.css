@@ -310,7 +310,7 @@ body.signin-page {
 
 .insight-headline { font-size: 22px; font-weight: var(--weight-semibold); color: var(--maroon); margin: 4px 0 2px; }
 .insight-sub { color: var(--ink-muted); font-size: 13px; margin: 10px 0 0; font-weight: var(--weight-light); }
-.card h2.trend-title { font-weight: var(--weight-bold); }
+.card h2.trend-title, .card h2.shaping-title { font-weight: var(--weight-bold); }
 .trend-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .trend-header h2 { margin-bottom: 0; }
 .trend-arrow { display: inline-flex; }
@@ -330,7 +330,6 @@ body.signin-page {
 .factor-cell h3 { font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 2px; }
 .shaping-cell .empty-state { padding: 34px 0; }
 .shaping-caption { color: var(--ink-muted); font-size: 13px; font-weight: var(--weight-light); margin: 0; }
-.shaping-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 
 .mini-chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .mini-chart-tab-btn {

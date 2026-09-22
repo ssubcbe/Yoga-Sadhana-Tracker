@@ -736,9 +736,9 @@ function renderShapingSection(container, entriesMap) {
     const cell = document.createElement('div');
     cell.className = 'factor-cell shaping-cell';
     cell.innerHTML = `<h3>${topic.title}</h3>`
-      + (topic.caption ? `<p class="shaping-caption">${topic.caption}</p><hr class="shaping-divider">` : '')
+      + (topic.caption ? `<p class="shaping-caption">${topic.caption}</p>` : '')
       + `<div class="shaping-body"></div>`
-      + (topic.footer ? `<hr class="shaping-divider"><p class="insight-sub shaping-footer">${topic.footer}</p>` : '');
+      + (topic.footer ? `<p class="insight-sub shaping-footer">${topic.footer}</p>` : '');
     container.appendChild(cell);
     const body = cell.querySelector('.shaping-body');
     if (topic.key === 'moon') {

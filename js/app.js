@@ -460,7 +460,7 @@ function renderInsightsTab() {
     </div>
 
     <div class="card">
-      <h2>What's shaping your practice</h2>
+      <h2 class="shaping-title">What's shaping your practice</h2>
       <div id="shaping-grid" class="factor-grid"></div>
     </div>
 
