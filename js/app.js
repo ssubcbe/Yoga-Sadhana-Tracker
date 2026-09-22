@@ -462,17 +462,21 @@ function renderInsightsTab() {
       </div>
     </div>
 
-    <div class="card key-message-card">
-      <h2 class="key-message-title">Current Week's (Mon to Sun) Key Message (${formatDDMMM(currentWeekFull.start)} - ${formatDDMMM(currentWeekFull.end)})</h2>
-      <p class="key-message-finding">${currentMsg.finding}</p>
-      ${currentMsg.improvement ? `<p class="key-message-improvement">${currentMsg.improvement}</p>` : ''}
-      ${currentMsg.advice ? `<p class="key-message-advice">${currentMsg.advice}</p>` : ''}
-    </div>
+    <div class="week-message-grid">
+      <div class="key-message-card">
+        <h2 class="key-message-title">Current Week's Key Message</h2>
+        <p class="key-message-range">(Mon, ${formatDDMMM(currentWeekFull.start)} - Sun, ${formatDDMMM(currentWeekFull.end)})</p>
+        <p class="key-message-finding">${currentMsg.finding}</p>
+        ${currentMsg.improvement ? `<p class="key-message-improvement">${currentMsg.improvement}</p>` : ''}
+        ${currentMsg.advice ? `<p class="key-message-advice">${currentMsg.advice}</p>` : ''}
+      </div>
 
-    <div class="card key-message-card">
-      <h2 class="key-message-title">Last Week's (Mon to Sun) Key Message (${formatDDMMM(lastRange.start)} - ${formatDDMMM(lastRange.end)})</h2>
-      <p class="key-message-finding">${lastMsg.finding}</p>
-      ${lastMsg.improvement ? `<p class="key-message-improvement">${lastMsg.improvement}</p>` : ''}
+      <div class="key-message-card">
+        <h2 class="key-message-title">Last Week's Key Message</h2>
+        <p class="key-message-range">(Mon, ${formatDDMMM(lastRange.start)} - Sun, ${formatDDMMM(lastRange.end)})</p>
+        <p class="key-message-finding">${lastMsg.finding}</p>
+        ${lastMsg.improvement ? `<p class="key-message-improvement">${lastMsg.improvement}</p>` : ''}
+      </div>
     </div>
 
     <div class="card">

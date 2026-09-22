@@ -316,9 +316,22 @@ body.signin-page {
 .trend-arrow { display: inline-flex; }
 .trend-arrow svg { display: block; }
 
-.key-message-card { background: linear-gradient(135deg, #fdf3e7, #fff); border: 1px solid var(--saffron); }
-.card h2.key-message-title { font-weight: var(--weight-bold); }
-.key-message-finding { font-size: 15px; line-height: 1.6; margin: 4px 0 10px; color: var(--ink); font-weight: var(--weight-regular); }
+/* Current/Last week key-message cards: same corner radius, background and
+   border as a Moon-Phase-style shaping cell (.factor-cell), plus a shadow
+   and their own 2-column grid (so the pair stretches to equal height, same
+   as any other shaping-grid row) rather than stacking full-width. */
+.week-message-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+@media (max-width: 720px) { .week-message-grid { grid-template-columns: 1fr; } }
+.key-message-card {
+  background: #fffdfa;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 3px 10px rgba(70, 64, 56, 0.12);
+}
+.key-message-card h2.key-message-title { margin: 0 0 2px; font-size: 19px; font-weight: var(--weight-bold); color: var(--maroon); text-transform: none; letter-spacing: normal; }
+.key-message-range { font-size: 13.5px; color: var(--ink-muted); font-weight: var(--weight-light); margin: 0 0 10px; }
+.key-message-finding { font-size: 15px; line-height: 1.6; margin: 0 0 10px; color: var(--ink); font-weight: var(--weight-regular); }
 .key-message-improvement { font-size: 14px; line-height: 1.6; margin: 0; color: var(--maroon); font-weight: var(--weight-semibold); }
 .key-message-advice { font-size: 14px; line-height: 1.6; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--ink); font-weight: var(--weight-regular); font-style: italic; }
 
