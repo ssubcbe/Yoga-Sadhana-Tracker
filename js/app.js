@@ -524,6 +524,7 @@ async function saveEntry() {
   // showing what was just submitted. Reopening this same date via the date
   // picker still reloads the real saved entry, through loadDraftForDate.
   DRAFT = blankEntry(SELECTED_DATE);
+  renderEntryForm();
   switchTab('insights');
 }
 
