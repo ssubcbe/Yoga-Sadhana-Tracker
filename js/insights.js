@@ -561,11 +561,21 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
   for (let i = tickStep; i < points.length - 1; i += tickStep) tickIdxs.add(i);
   const sortedTicks = Array.from(tickIdxs).sort((a, b) => a - b);
 
-  // One continuous curve across every point, including no-data days - those
-  // dip to 0 (the same y as their grey marker) rather than breaking the
-  // line into disconnected segments.
-  const linePoints = points.map((p, i) => ({ x: xFor(i), y: yFor(p.hasData ? p.score : 0) }));
-  svg.appendChild(svgEl('path', { d: smoothPathD(linePoints), fill: 'none', stroke: '#E8842A', 'stroke-width': 2 }));
+  // A separate path per run of consecutive real-data points - a no-data day
+  // breaks the line (a visible gap) instead of pulling it down to 0.
+  let segStart = null;
+  for (let i = 0; i <= points.length; i++) {
+    const isData = i < points.length && points[i].hasData;
+    if (isData) {
+      if (segStart === null) segStart = i;
+    } else {
+      if (segStart !== null && i - segStart >= 2) {
+        const seg = points.slice(segStart, i).map((p, idx) => ({ x: xFor(segStart + idx), y: yFor(p.score) }));
+        svg.appendChild(svgEl('path', { d: smoothPathD(seg), fill: 'none', stroke: '#E8842A', 'stroke-width': 2 }));
+      }
+      segStart = null;
+    }
+  }
 
   // Plain days and no-data markers keep this radius; New Moon/Full
   // Moon/Ekadashi are drawn at double this (see SPECIAL_MARKER_R below) so
@@ -595,7 +605,7 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
       // plain grey marker, regardless of what lunar event that date is -
       // there's no score to color-code, so lunar styling doesn't apply.
       usedR = MARKER_R;
-      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#d7d2c9' });
+      marker = svgEl('circle', { cx, cy, r: usedR, fill: '#5c5c5c' });
     } else if (event.isFullMoon) {
       // A pure white fill with no border, as specified, is literally
       // invisible against this chart's white/cream background - a plain
@@ -671,7 +681,7 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
       <span><span class="legend-dot" style="background:#464038;border-color:#464038"></span>New Moon</span>
       <span><span class="legend-dot" style="background:#ffffff;border-color:#c9c2b4"></span>Full Moon</span>
       <span><span class="legend-dot" style="background:#00FDFF;border-color:#00FDFF"></span>Ekadashi</span>
-      <span><span class="legend-dot" style="background:transparent;border-color:#1a1a1a"></span>Fasting</span>
+      <span><span class="legend-dot" style="background:transparent;border-color:#1a1a1a"></span>Normal day Fasting</span>
     `;
   }
 }
