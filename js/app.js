@@ -295,15 +295,6 @@ function renderEntryForm() {
   wireKriyaActivateButtons(document);
   wireAsanaActivateButtons(document);
 
-  // A gentle nudge rather than a hard block on Submit - clicking into the
-  // Yogasanas section reminds the user once if the currently-active
-  // session's shower question is still unanswered.
-  document.getElementById('yogasanas-title').addEventListener('click', () => {
-    if (DRAFT.showeredBeforeAsanas[activeSession] === null) {
-      alert('Please mark your answer - Showered before Asanas?');
-    }
-  });
-
   document.querySelectorAll('.session-tab-label').forEach(el => {
     el.addEventListener('click', () => {
       activeSession = el.dataset.session;
