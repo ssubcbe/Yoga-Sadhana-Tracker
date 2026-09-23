@@ -24,6 +24,24 @@ function lockSex(value) {
   Storage.saveSettings(CURRENT_USER.email, s);
 }
 
+// Kriyas that require initiation are locked (greyed with an "Activate" gate)
+// until the user confirms they've been initiated - an account-level choice,
+// same storage pattern as the locked sex. Shambhavi Mahamudra Kriya is never
+// locked (see js/poses.js / the reference mockup - it's the one item shown
+// already active).
+const KRIYA_NO_LOCK_KEY = 'shambhavi-mahamudra';
+function isKriyaActivated(key) {
+  if (key === KRIYA_NO_LOCK_KEY) return true;
+  const s = Storage.getSettings(CURRENT_USER.email);
+  return !!(s.activatedKriyas && s.activatedKriyas[key]);
+}
+function activateKriya(key) {
+  const s = Storage.getSettings(CURRENT_USER.email);
+  if (!s.activatedKriyas) s.activatedKriyas = {};
+  s.activatedKriyas[key] = true;
+  Storage.saveSettings(CURRENT_USER.email, s);
+}
+
 function blankEntry(date) {
   return {
     date,
@@ -158,7 +176,7 @@ function renderEntryForm() {
         <div class="wellbeing-sex-col">${sexColHtml}</div>
       </div>
       <div class="field ekadashi-field">
-        <label>${isEkadashiDay ? '<strong class="ekadashi-word">Ekadashi</strong>' : 'Normal'} fast</label>
+        <label>${isEkadashiDay ? '<strong class="ekadashi-word">Ekadashi</strong> fast' : 'Normal day fast'}</label>
         <div class="fast-choice-row">
           ${EKADASHI_FAST_OPTIONS.map(o => `<button type="button" class="fast-btn ${DRAFT.ekadashiFast === o.value ? 'selected' : ''}" data-fast="${o.value}">${o.label}</button>`).join('')}
         </div>
@@ -197,7 +215,7 @@ function renderEntryForm() {
     </div>
 
     <div class="save-bar">
-      <button class="action-btn" id="save-entry-btn">Save today's entry</button>
+      <button class="action-btn" id="save-entry-btn">Submit</button>
     </div>
   `;
 
@@ -258,6 +276,7 @@ function renderEntryForm() {
   document.getElementById('f-notes').addEventListener('input', (e) => DRAFT.generalNotes = e.target.value);
 
   wireSmileyButtons(document);
+  wireKriyaActivateButtons(document);
 
   document.querySelectorAll('.session-tab-label').forEach(el => {
     el.addEventListener('click', () => {
@@ -314,7 +333,19 @@ function wireSmileyButtons(root) {
         refreshPoseTile(poseTile.dataset.poseKey);
       }
     });
-    btn.addEventListener('mouseenter', (e) => showTip(e, btn.dataset.label));
+    btn.addEventListener('mouseenter', (e) => {
+      // Pose tiles (the 24 Yogasana boxes): anchor below that tile's icon,
+      // not the cursor, so the tooltip lands in the same spot regardless of
+      // which of the 4 smileys is hovered. Kriya/Sadhana tiles keep the
+      // cursor-following behavior.
+      const poseTile = btn.closest('.pose-tile:not(.kriya-sadhana-tile)');
+      if (poseTile) {
+        const icon = poseTile.querySelector('svg');
+        showTipBelowElement(icon || poseTile, btn.dataset.label);
+      } else {
+        showTip(e, btn.dataset.label);
+      }
+    });
     btn.addEventListener('mouseleave', hideTip);
   });
 }
@@ -362,6 +393,17 @@ function refreshPoseTile(key) {
 }
 
 function renderKriyaSadhanaTile(item) {
+  if (!isKriyaActivated(item.key)) {
+    return `
+      <div class="pose-tile kriya-sadhana-tile locked" data-kriya-key="${item.key}">
+        ${ICONS[item.icon]}
+        <div class="pose-name">${item.name}</div>
+        <div class="kriya-lock-panel">
+          <p class="kriya-lock-text">If you have been initiated into this practice, please activate here.</p>
+          <button type="button" class="action-btn kriya-activate-btn" data-activate-key="${item.key}">Activate</button>
+        </div>
+      </div>`;
+  }
   const selected = DRAFT.kriyaSadhana[item.key]; // true, false, or undefined
   const answered = selected !== undefined;
   return `
@@ -380,7 +422,18 @@ function refreshKriyaSadhanaTile(key) {
   const item = KRIYA_SADHANA_ITEMS.find(i => i.key === key);
   const tile = document.querySelector(`.kriya-sadhana-tile[data-kriya-key="${key}"]`);
   tile.outerHTML = renderKriyaSadhanaTile(item);
-  wireSmileyButtons(document.querySelector(`.kriya-sadhana-tile[data-kriya-key="${key}"]`));
+  const refreshed = document.querySelector(`.kriya-sadhana-tile[data-kriya-key="${key}"]`);
+  wireSmileyButtons(refreshed);
+  wireKriyaActivateButtons(refreshed);
+}
+
+function wireKriyaActivateButtons(root) {
+  root.querySelectorAll('.kriya-activate-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activateKriya(btn.dataset.activateKey);
+      refreshKriyaSadhanaTile(btn.dataset.activateKey);
+    });
+  });
 }
 
 function saveEntry() {
@@ -396,7 +449,10 @@ function saveEntry() {
     return n > 0 && n < ASANAS.length;
   };
   const missingSomeAsanas = sessionPartial(DRAFT.asanaRatings.morning) || sessionPartial(DRAFT.asanaRatings.evening);
-  const missingSomeKriyas = Object.keys(DRAFT.kriyaSadhana).length < KRIYA_SADHANA_ITEMS.length;
+  // Locked (not-yet-activated) kriyas have no way to answer them, so only
+  // count activated items toward "did you answer everything?".
+  const activatedKriyaCount = KRIYA_SADHANA_ITEMS.filter(i => isKriyaActivated(i.key)).length;
+  const missingSomeKriyas = Object.keys(DRAFT.kriyaSadhana).length < activatedKriyaCount;
   if (missingSomeAsanas || missingSomeKriyas) {
     if (!confirm('You have not marked some of the Yoga asanas or Kriyas and Sadhanas. Are you ok to Save?')) return;
   }
@@ -520,7 +576,7 @@ function renderInsightsTab() {
     document.getElementById('trend-chart'), entries, trendDates,
     document.getElementById('trend-legend'), document.getElementById('trend-arrow')
   );
-  renderShapingSection(document.getElementById('shaping-grid'), entries);
+  renderShapingSection(document.getElementById('shaping-grid'), entries, isKriyaActivated);
   renderMiniAsanaCharts(document.getElementById('mini-chart-tabs'), document.getElementById('mini-chart-grid'), entries);
 }
 

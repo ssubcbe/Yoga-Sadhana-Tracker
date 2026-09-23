@@ -371,6 +371,18 @@ function showTip(evt, html) {
 }
 function hideTip() { ensureTooltip().classList.remove('show'); }
 
+// Anchored a little below a given element (its pose icon) rather than
+// following the cursor - used for the 24 asana tiles' rating tooltip, so it
+// sits in the same spot regardless of which of the 4 smileys is hovered.
+function showTipBelowElement(el, html) {
+  const tip = ensureTooltip();
+  tip.innerHTML = html;
+  const rect = el.getBoundingClientRect();
+  tip.style.left = (window.scrollX + rect.left) + 'px';
+  tip.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+  tip.classList.add('show');
+}
+
 // Catmull-Rom -> cubic Bezier smoothing, so the trend line reads as a
 // gentle curve rather than sharp point-to-point segments.
 function smoothPathD(pts) {
@@ -1215,8 +1227,15 @@ function renderShowerBox(container, entriesMap) {
 // (avg score on days it wasn't) - a genuinely different chart shape from
 // the value bars, pies and dumbbell used elsewhere: signed, zero-centered,
 // ranked by influence rather than by raw value.
-function computeKriyaBreakdown(entries) {
+function computeKriyaBreakdown(entries, isActivatedFn) {
   return KRIYA_SADHANA_ITEMS.map(item => {
+    // Kriyas requiring initiation that the user hasn't activated yet are
+    // excluded from the influence computation entirely (not just hidden) -
+    // shown as "(N/A)" rather than a computed (and misleading) delta.
+    if (isActivatedFn && !isActivatedFn(item.key)) {
+      const empty = { avg: null, count: 0, top3: [], bottom3: [] };
+      return { key: item.key, name: `${item.name} (N/A)`, done: empty, notDone: empty, delta: null, activated: false };
+    }
     const done = { scores: [], asanaTotals: {} };
     const notDone = { scores: [], asanaTotals: {} };
     entries.forEach(entry => {
@@ -1241,7 +1260,7 @@ function computeKriyaBreakdown(entries) {
     };
     const doneStats = build(done), notDoneStats = build(notDone);
     const delta = (doneStats.avg !== null && notDoneStats.avg !== null) ? doneStats.avg - notDoneStats.avg : null;
-    return { key: item.key, name: item.name, done: doneStats, notDone: notDoneStats, delta };
+    return { key: item.key, name: item.name, done: doneStats, notDone: notDoneStats, delta, activated: true };
   });
 }
 
@@ -1268,7 +1287,7 @@ function renderKriyaDivergingChart(container, rowsIn, rangeLabel) {
 
   const w = container.clientWidth || 440;
   const rowH = 30, padT = 10, padB = 10;
-  const labelW = 150, leftPad = 10, rightPad = 42;
+  const labelW = 180, leftPad = 10, rightPad = 42;
   const chartLeft = leftPad + labelW;
   const chartRight = w - rightPad;
   const trackW = Math.max(40, chartRight - chartLeft);
@@ -1283,10 +1302,11 @@ function renderKriyaDivergingChart(container, rowsIn, rangeLabel) {
   rows.forEach((row, i) => {
     const y = padT + i * rowH;
     const cy = y + rowH / 2;
-    const label = row.name.length > 26 ? row.name.slice(0, 25) + '…' : row.name;
+    const label = row.name.length > 32 ? row.name.slice(0, 31) + '…' : row.name;
     rowsSvg += `<text x="${leftPad}" y="${cy + 4}" font-size="10.5" fill="#464038">${label}</text>`;
     if (row.delta === null) {
-      rowsSvg += `<text x="${zeroX + 6}" y="${cy + 4}" font-size="10.5" fill="#a8a196">No data</text>`;
+      const naText = row.activated === false ? 'Not activated' : 'No data';
+      rowsSvg += `<text x="${zeroX + 6}" y="${cy + 4}" font-size="10.5" fill="#a8a196">${naText}</text>`;
       return;
     }
     const barH = 14, barY = cy - barH / 2;
@@ -1336,9 +1356,9 @@ function kriyaFindingSentence(rowsIn, rangeLabel) {
   return parts.join(' ');
 }
 
-function renderKriyaBox(container, entriesMap) {
+function renderKriyaBox(container, entriesMap, isActivatedFn) {
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
-  const rows = computeKriyaBreakdown(entries);
+  const rows = computeKriyaBreakdown(entries, isActivatedFn);
 
   const caption = document.createElement('p');
   caption.className = 'shaping-caption';
@@ -1355,7 +1375,7 @@ function renderKriyaBox(container, entriesMap) {
   container.appendChild(finding);
 }
 
-function renderShapingSection(container, entriesMap) {
+function renderShapingSection(container, entriesMap, isKriyaActivatedFn) {
   container.innerHTML = '';
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
 
@@ -1378,7 +1398,7 @@ function renderShapingSection(container, entriesMap) {
     } else if (topic.key === 'showering') {
       renderShowerBox(body, entriesMap);
     } else if (topic.key === 'kriyas') {
-      renderKriyaBox(body, entriesMap);
+      renderKriyaBox(body, entriesMap, isKriyaActivatedFn);
     } else {
       body.innerHTML = '<div class="empty-state">Coming soon.</div>';
     }
