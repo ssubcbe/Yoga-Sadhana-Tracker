@@ -1287,10 +1287,10 @@ function computeKriyaBreakdown(entries, isActivatedFn) {
   return KRIYA_SADHANA_ITEMS.map(item => {
     // Kriyas requiring initiation that the user hasn't activated yet are
     // excluded from the influence computation entirely (not just hidden) -
-    // shown as "(N/A)" rather than a computed (and misleading) delta.
+    // shown as "(N/I)" rather than a computed (and misleading) delta.
     if (isActivatedFn && !isActivatedFn(item.key)) {
       const empty = { avg: null, count: 0, top3: [], bottom3: [] };
-      return { key: item.key, name: `${item.name} (N/A)`, done: empty, notDone: empty, delta: null, activated: false };
+      return { key: item.key, name: `${item.name} (N/I)`, done: empty, notDone: empty, delta: null, activated: false };
     }
     const done = { scores: [], asanaTotals: {} };
     const notDone = { scores: [], asanaTotals: {} };
@@ -1361,7 +1361,7 @@ function renderKriyaDivergingChart(container, rowsIn, rangeLabel) {
     const label = row.name.length > 32 ? row.name.slice(0, 31) + '…' : row.name;
     rowsSvg += `<text x="${leftPad}" y="${cy + 4}" font-size="10.5" fill="#464038">${label}</text>`;
     if (row.delta === null) {
-      const naText = row.activated === false ? 'Not activated' : 'No data';
+      const naText = row.activated === false ? 'Not Initiated' : 'No data';
       rowsSvg += `<text x="${zeroX + 6}" y="${cy + 4}" font-size="10.5" fill="#a8a196">${naText}</text>`;
       return;
     }

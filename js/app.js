@@ -184,7 +184,7 @@ function renderEntryForm() {
     </div>
 
     <div class="card">
-      <h2>Yogasanas - My experience today</h2>
+      <h2 id="yogasanas-title">Yogasanas - My experience today</h2>
       <div class="session-tabs">
         ${renderSessionTab('morning', 'Morning Session')}
         ${renderSessionTab('evening', 'Evening Session')}
@@ -277,6 +277,15 @@ function renderEntryForm() {
 
   wireSmileyButtons(document);
   wireKriyaActivateButtons(document);
+
+  // A gentle nudge rather than a hard block on Submit - clicking into the
+  // Yogasanas section reminds the user once if the currently-active
+  // session's shower question is still unanswered.
+  document.getElementById('yogasanas-title').addEventListener('click', () => {
+    if (DRAFT.showeredBeforeAsanas[activeSession] === null) {
+      alert('Please mark your answer - Showered before Asanas?');
+    }
+  });
 
   document.querySelectorAll('.session-tab-label').forEach(el => {
     el.addEventListener('click', () => {
