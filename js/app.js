@@ -601,7 +601,12 @@ function renderInsightsTab() {
     </div>
 
     <div id="insight-mini-charts" class="card">
-      <h2 class="trend-title">My Asana Progress — Last 7 Days</h2>
+      <div class="trend-header">
+        <h2 class="trend-title">My Asana Progress — <span id="mini-week-label"></span></h2>
+        <div class="trend-header-right">
+          <div id="mini-chart-nav" class="trend-nav"></div>
+        </div>
+      </div>
       <div id="mini-chart-tabs" class="mini-chart-tabs"></div>
       <div id="mini-chart-grid" class="mini-chart-grid"></div>
     </div>
@@ -612,7 +617,11 @@ function renderInsightsTab() {
     entries, stats, allDates
   );
   renderShapingSection(document.getElementById('shaping-grid'), entries, isKriyaActivated);
-  renderMiniAsanaCharts(document.getElementById('mini-chart-tabs'), document.getElementById('mini-chart-grid'), entries);
+  renderMiniChartSection(
+    document.getElementById('mini-chart-nav'), document.getElementById('mini-week-label'),
+    document.getElementById('mini-chart-tabs'), document.getElementById('mini-chart-grid'),
+    entries, allDates
+  );
 }
 
 // ---------- Settings tab ----------

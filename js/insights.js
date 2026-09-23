@@ -1487,7 +1487,7 @@ function renderMiniBarChart(container, points, todayStr) {
   points.forEach((p, i) => {
     const slotCenter = padL + i * slotW + slotW / 2;
     const x = slotCenter - barW / 2;
-    const isToday = p.date === todayStr;
+    const isFuture = p.date >= todayStr;
 
     if (p.value !== undefined && p.value !== null) {
       const yTop = yFor(p.value);
@@ -1497,9 +1497,10 @@ function renderMiniBarChart(container, points, todayStr) {
       bar.addEventListener('mousemove', (e) => showTip(e, `<strong>${formatDDMM(p.date)}</strong><br>${p.value.toFixed(1)} / 4`));
       bar.addEventListener('mouseleave', hideTip);
       svg.appendChild(bar);
-    } else if (!isToday) {
+    } else if (!isFuture) {
       // Grey "no data" only applies to past days that were skipped - today
-      // just hasn't happened yet, so it's left blank rather than flagged.
+      // and any day still to come just haven't happened yet, so they're
+      // left blank rather than flagged.
       const bar = svgEl('path', { d: roundedTopPath(x, baselineY - noDataHeight, barW, noDataHeight, barW / 2), fill: '#d7d2c9' });
       bar.style.cursor = 'pointer';
       bar.addEventListener('mousemove', (e) => showTip(e, `<strong>${formatDDMM(p.date)}</strong><br>No data`));
@@ -1526,11 +1527,7 @@ const MINI_CHART_TABS = [
   { mode: 'evening', label: 'Evening' },
 ];
 
-function renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap) {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const last7 = [];
-  for (let i = 6; i >= 0; i--) last7.push(addDays(todayStr, -i));
-
+function renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap, weekDates, todayStr) {
   tabsContainer.innerHTML = MINI_CHART_TABS.map(t =>
     `<button type="button" class="mini-chart-tab-btn${t.mode === miniChartMode ? ' active' : ''}" data-mode="${t.mode}">${t.label}</button>`
   ).join('');
@@ -1538,7 +1535,7 @@ function renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap) {
     btn.addEventListener('click', () => {
       if (btn.dataset.mode === miniChartMode) return;
       miniChartMode = btn.dataset.mode;
-      renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap);
+      renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap, weekDates, todayStr);
     });
   });
 
@@ -1550,6 +1547,55 @@ function renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap) {
     const chartDiv = document.createElement('div');
     card.appendChild(chartDiv);
     gridContainer.appendChild(card);
-    renderMiniBarChart(chartDiv, last7.map(d => ({ date: d, value: asanaValueForDayMode(entriesMap[d], asana.key, miniChartMode) })), todayStr);
+    renderMiniBarChart(chartDiv, weekDates.map(d => ({ date: d, value: asanaValueForDayMode(entriesMap[d], asana.key, miniChartMode) })), todayStr);
   });
+}
+
+function weekRangeBack(weeksBack, todayStr) {
+  const monday = addDays(mondayOf(todayStr), -7 * weeksBack);
+  return weekRange(monday);
+}
+
+function weeksBetweenMondays(fromDateStr, toDateStr) {
+  const fromMonday = mondayOf(fromDateStr);
+  const toMonday = mondayOf(toDateStr);
+  const diffDays = (new Date(toMonday + 'T00:00:00Z') - new Date(fromMonday + 'T00:00:00Z')) / (24 * 60 * 60 * 1000);
+  return Math.round(diffDays / 7);
+}
+
+// 0 = current calendar week (Mon-Sun, progressive - days after today just
+// haven't happened yet); N>0 = N calendar weeks back. Mirrors
+// renderTrendSection's month-paging pattern, just at week granularity, and
+// stops at the week of the very first entry ever logged.
+let miniChartWeeksBack = 0;
+
+function renderMiniChartSection(navContainer, weekLabelEl, tabsContainer, gridContainer, entriesMap, allDates) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const maxWeeksBack = allDates.length ? weeksBetweenMondays(allDates[0], todayStr) : 0;
+  const canGoBack = miniChartWeeksBack < maxWeeksBack;
+
+  navContainer.innerHTML = `
+    <button type="button" class="trend-nav-arrow" id="mini-prev-btn" aria-label="Previous week" ${canGoBack ? '' : 'disabled'}>&lsaquo;</button>
+    <button type="button" class="trend-nav-current ${miniChartWeeksBack === 0 ? 'active' : ''}" id="mini-current-btn">Current Week</button>
+  `;
+  navContainer.querySelector('#mini-prev-btn').addEventListener('click', () => {
+    if (miniChartWeeksBack >= maxWeeksBack) return;
+    miniChartWeeksBack += 1;
+    renderMiniChartSection(navContainer, weekLabelEl, tabsContainer, gridContainer, entriesMap, allDates);
+  });
+  navContainer.querySelector('#mini-current-btn').addEventListener('click', () => {
+    miniChartWeeksBack = 0;
+    renderMiniChartSection(navContainer, weekLabelEl, tabsContainer, gridContainer, entriesMap, allDates);
+  });
+
+  const range = weekRangeBack(miniChartWeeksBack, todayStr);
+  const weekWord = miniChartWeeksBack === 0 ? 'Current Week'
+    : miniChartWeeksBack === 1 ? 'Previous Week'
+    : `${miniChartWeeksBack} Weeks Back`;
+  if (weekLabelEl) weekLabelEl.textContent = `${weekWord} (Mon, ${formatDDMMM(range.start)} to Sun, ${formatDDMMM(range.end)})`;
+
+  const weekDates = [];
+  for (let d = range.start; d <= range.end; d = addDays(d, 1)) weekDates.push(d);
+
+  renderMiniAsanaCharts(tabsContainer, gridContainer, entriesMap, weekDates, todayStr);
 }
