@@ -502,3 +502,29 @@ body.signin-page {
   pointer-events: none;
 }
 .toast.show { opacity: 1; }
+
+/* Custom confirm/alert modal - replaces the browser's native confirm()/
+   alert() chrome (which shows the page's own URL, e.g. "ssubcbe.github.io
+   says") with an in-app styled dialog. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(70, 64, 56, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--border);
+  border-radius: 14px;
+  padding: 30px 32px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(70, 64, 56, 0.3);
+}
+.modal-message { font-size: 19px; color: var(--ink); text-align: center; line-height: 1.5; margin: 0 0 24px; font-weight: var(--weight-regular); }
+.modal-actions { display: flex; justify-content: center; gap: 16px; }
+.modal-actions .action-btn { padding: 10px 26px; font-size: 15px; }

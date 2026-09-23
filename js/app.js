@@ -251,8 +251,8 @@ function renderEntryForm() {
   }
   const editSexBtn = document.getElementById('edit-sex-btn');
   if (editSexBtn) {
-    editSexBtn.addEventListener('click', () => {
-      if (confirm('Change your sex selection? This updates it everywhere, not just today.')) {
+    editSexBtn.addEventListener('click', async () => {
+      if (await showConfirmModal('Change your sex selection? This updates it everywhere, not just today.')) {
         const s = Storage.getSettings(CURRENT_USER.email);
         s.sexLocked = false;
         Storage.saveSettings(CURRENT_USER.email, s);
@@ -292,18 +292,18 @@ function renderEntryForm() {
     });
   });
 
-  document.getElementById('reset-asanas-btn').addEventListener('click', () => {
+  document.getElementById('reset-asanas-btn').addEventListener('click', async () => {
     const sessionLabel = activeSession === 'morning' ? 'Morning' : 'Evening';
     if (Object.keys(DRAFT.asanaRatings[activeSession]).length === 0) return;
-    if (confirm(`Reset all of today's ${sessionLabel} Session yogasana ratings? This can't be undone.`)) {
+    if (await showConfirmModal(`Reset all of today's ${sessionLabel} Session yogasana ratings? This can't be undone.`)) {
       DRAFT.asanaRatings[activeSession] = {};
       renderEntryForm();
     }
   });
 
-  document.getElementById('reset-kriya-sadhana-btn').addEventListener('click', () => {
+  document.getElementById('reset-kriya-sadhana-btn').addEventListener('click', async () => {
     if (Object.keys(DRAFT.kriyaSadhana).length === 0) return;
-    if (confirm("Reset all of today's Kriyas and Sadhanas responses? This can't be undone.")) {
+    if (await showConfirmModal("Reset all of today's Kriyas and Sadhanas responses? This can't be undone.")) {
       DRAFT.kriyaSadhana = {};
       renderEntryForm();
     }
@@ -360,8 +360,8 @@ function renderSessionTab(session, title) {
   return `
     <div class="session-tab ${isActive ? 'active' : ''}">
       <div class="session-tab-label" data-session="${session}">${title}</div>
-      <div class="session-shower-row">
-        <span class="session-shower-label">Showered before Asanas?</span>
+      <div class="session-shower-row" data-session="${session}">
+        <span class="session-shower-label">Showered before Asanas? <span class="required-mark">*</span></span>
         <div class="yesno-row">
           <button type="button" class="yesno-btn ${showered === true ? 'selected' : ''}" data-showered-session="${session}" data-showered="yes">Yes</button>
           <button type="button" class="yesno-btn ${showered === false ? 'selected' : ''}" data-showered-session="${session}" data-showered="no">No</button>
@@ -436,10 +436,20 @@ function wireKriyaActivateButtons(root) {
   });
 }
 
-function saveEntry() {
+async function saveEntry() {
   if (DRAFT.sex === 'female' && DRAFT.menstrualCycle === null) {
-    alert('Please answer "Currently in menstrual cycle?" before saving.');
     document.getElementById('f-menstrual-field').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await showConfirmModal('Please answer "Currently in menstrual cycle?" before saving.', { showCancel: false });
+    return;
+  }
+  // Showered before Asanas? is mandatory for both sessions, regardless of
+  // whether that session's asanas were actually rated.
+  const missingShower = DRAFT.showeredBeforeAsanas.morning === null ? 'morning'
+    : DRAFT.showeredBeforeAsanas.evening === null ? 'evening' : null;
+  if (missingShower) {
+    const row = document.querySelector(`.session-shower-row[data-session="${missingShower}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await showConfirmModal('Please answer "Showered before Asanas?" for both Morning and Evening before saving.', { showCancel: false });
     return;
   }
   // A session with zero ratings just wasn't attempted (fine - sessions are
@@ -454,7 +464,7 @@ function saveEntry() {
   const activatedKriyaCount = KRIYA_SADHANA_ITEMS.filter(i => isKriyaActivated(i.key)).length;
   const missingSomeKriyas = Object.keys(DRAFT.kriyaSadhana).length < activatedKriyaCount;
   if (missingSomeAsanas || missingSomeKriyas) {
-    if (!confirm('You have not marked some of the Yoga asanas or Kriyas and Sadhanas. Are you ok to Save?')) return;
+    if (!(await showConfirmModal('You have not marked some of the Yoga asanas or Kriyas and Sadhanas. Are you ok to Save?'))) return;
   }
   // No time field in the form anymore - capture the actual moment of saving
   // as the practice time when logging today (used by the time-of-day insight).
@@ -467,6 +477,40 @@ function saveEntry() {
   // picker still reloads the real saved entry, through loadDraftForDate.
   DRAFT = blankEntry(SELECTED_DATE);
   switchTab('insights');
+}
+
+// Styled replacement for window.confirm()/alert() - returns a Promise<boolean>
+// (true = Okay, false = Cancel/dismissed) so callers await it instead of
+// branching on a synchronous return value. Pass { showCancel: false } for a
+// single-button alert-style dismissal.
+function showConfirmModal(message, options) {
+  options = options || {};
+  const okText = options.okText || 'Okay';
+  const cancelText = options.cancelText || 'Cancel';
+  const showCancel = options.showCancel !== false;
+  return new Promise((resolve) => {
+    let overlay = document.getElementById('app-modal-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'app-modal-overlay';
+      overlay.className = 'modal-overlay';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `
+      <div class="modal-box">
+        <p class="modal-message"></p>
+        <div class="modal-actions">
+          ${showCancel ? `<button type="button" class="action-btn modal-cancel-btn">${cancelText}</button>` : ''}
+          <button type="button" class="action-btn modal-ok-btn">${okText}</button>
+        </div>
+      </div>`;
+    overlay.querySelector('.modal-message').textContent = message;
+    overlay.classList.add('show');
+    const finish = (result) => { overlay.classList.remove('show'); resolve(result); };
+    const cancelBtn = overlay.querySelector('.modal-cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => finish(false), { once: true });
+    overlay.querySelector('.modal-ok-btn').addEventListener('click', () => finish(true), { once: true });
+  });
 }
 
 function showToast(msg) {
@@ -636,8 +680,8 @@ function renderSettingsTab() {
     }
   });
   document.getElementById('ics-btn').addEventListener('click', downloadIcsReminder);
-  document.getElementById('seed-btn').addEventListener('click', () => {
-    if (confirm('This adds/overwrites the last 30 days of entries for your account with sample data. Continue?')) {
+  document.getElementById('seed-btn').addEventListener('click', async () => {
+    if (await showConfirmModal('This adds/overwrites the last 30 days of entries for your account with sample data. Continue?')) {
       loadSeedData(CURRENT_USER.email);
       loadDraftForDate(SELECTED_DATE);
       renderEntryForm();
@@ -646,8 +690,8 @@ function renderSettingsTab() {
     }
   });
   document.getElementById('import-csv-btn').addEventListener('click', importCsvFile);
-  document.getElementById('clear-btn').addEventListener('click', () => {
-    if (confirm('This permanently deletes all your logged entries on this device. Continue?')) {
+  document.getElementById('clear-btn').addEventListener('click', async () => {
+    if (await showConfirmModal('This permanently deletes all your logged entries on this device. Continue?')) {
       localStorage.removeItem(Storage._entriesKey(CURRENT_USER.email));
       loadDraftForDate(SELECTED_DATE);
       renderEntryForm();
@@ -663,7 +707,7 @@ function importCsvFile() {
   if (!file) { status.textContent = 'Choose a .csv file first.'; return; }
 
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     let parsed;
     try {
       parsed = csvToEntries(reader.result);
@@ -679,7 +723,7 @@ function importCsvFile() {
     const msg = `Import ${dates.length} day(s) (${dates[0]} to ${dates[dates.length - 1]})`
       + (parsed.skipped.length ? `, skipping ${parsed.skipped.length} row(s) with an unrecognized date` : '')
       + '? Matching dates already logged will be overwritten.';
-    if (!confirm(msg)) return;
+    if (!(await showConfirmModal(msg))) return;
 
     const existing = Storage.getAllEntries(CURRENT_USER.email);
     const merged = { ...existing, ...parsed.entries };
