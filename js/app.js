@@ -360,8 +360,8 @@ function renderSessionTab(session, title) {
   return `
     <div class="session-tab ${isActive ? 'active' : ''}">
       <div class="session-tab-label" data-session="${session}">${title}</div>
-      <div class="session-shower-row" data-session="${session}">
-        <span class="session-shower-label">Showered before Asanas? <span class="required-mark">*</span></span>
+      <div class="session-shower-row">
+        <span class="session-shower-label">Showered before Asanas?</span>
         <div class="yesno-row">
           <button type="button" class="yesno-btn ${showered === true ? 'selected' : ''}" data-showered-session="${session}" data-showered="yes">Yes</button>
           <button type="button" class="yesno-btn ${showered === false ? 'selected' : ''}" data-showered-session="${session}" data-showered="no">No</button>
@@ -436,20 +436,10 @@ function wireKriyaActivateButtons(root) {
   });
 }
 
-function saveEntry() {
+async function saveEntry() {
   if (DRAFT.sex === 'female' && DRAFT.menstrualCycle === null) {
     alert('Please answer "Currently in menstrual cycle?" before saving.');
     document.getElementById('f-menstrual-field').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  // Showered before Asanas? is mandatory for both sessions, regardless of
-  // whether that session's asanas were actually rated.
-  const missingShower = DRAFT.showeredBeforeAsanas.morning === null ? 'morning'
-    : DRAFT.showeredBeforeAsanas.evening === null ? 'evening' : null;
-  if (missingShower) {
-    alert('Please answer "Showered before Asanas?" for both Morning and Evening before saving.');
-    const row = document.querySelector(`.session-shower-row[data-session="${missingShower}"]`);
-    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
   // A session with zero ratings just wasn't attempted (fine - sessions are
@@ -464,7 +454,7 @@ function saveEntry() {
   const activatedKriyaCount = KRIYA_SADHANA_ITEMS.filter(i => isKriyaActivated(i.key)).length;
   const missingSomeKriyas = Object.keys(DRAFT.kriyaSadhana).length < activatedKriyaCount;
   if (missingSomeAsanas || missingSomeKriyas) {
-    if (!confirm('You have not marked some of the Yoga asanas or Kriyas and Sadhanas. Are you ok to Save?')) return;
+    if (!(await showConfirmModal('You have not marked some of the Yoga asanas or Kriyas and Sadhanas. Are you ok to Save?'))) return;
   }
   // No time field in the form anymore - capture the actual moment of saving
   // as the practice time when logging today (used by the time-of-day insight).
@@ -477,6 +467,34 @@ function saveEntry() {
   // picker still reloads the real saved entry, through loadDraftForDate.
   DRAFT = blankEntry(SELECTED_DATE);
   switchTab('insights');
+}
+
+// Styled confirm dialog for Submit's "missing some" check specifically -
+// returns a Promise<boolean> (true = Okay, false = Cancel) instead of
+// window.confirm()'s native chrome, which shows the page's own URL.
+function showConfirmModal(message) {
+  return new Promise((resolve) => {
+    let overlay = document.getElementById('app-modal-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'app-modal-overlay';
+      overlay.className = 'modal-overlay';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `
+      <div class="modal-box">
+        <p class="modal-message"></p>
+        <div class="modal-actions">
+          <button type="button" class="action-btn modal-cancel-btn">Cancel</button>
+          <button type="button" class="action-btn modal-ok-btn">Okay</button>
+        </div>
+      </div>`;
+    overlay.querySelector('.modal-message').textContent = message;
+    overlay.classList.add('show');
+    const finish = (result) => { overlay.classList.remove('show'); resolve(result); };
+    overlay.querySelector('.modal-cancel-btn').addEventListener('click', () => finish(false), { once: true });
+    overlay.querySelector('.modal-ok-btn').addEventListener('click', () => finish(true), { once: true });
+  });
 }
 
 function showToast(msg) {
