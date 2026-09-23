@@ -575,7 +575,7 @@ function renderInsightsTab() {
 
     <div id="insight-trend" class="card">
       <div class="trend-header">
-        <h2 class="trend-title">30-Day Overall Yoga Asanas Trend</h2>
+        <h2 class="trend-title">30-Day Overall Yoga Asanas Trend <span id="trend-month-label"></span></h2>
         <div class="trend-header-right">
           <div id="trend-nav" class="trend-nav"></div>
           <span id="trend-arrow" class="trend-arrow"></span>
@@ -598,7 +598,7 @@ function renderInsightsTab() {
     </div>
   `;
   renderTrendSection(
-    document.getElementById('trend-nav'), document.getElementById('trend-chart'),
+    document.getElementById('trend-nav'), document.getElementById('trend-month-label'), document.getElementById('trend-chart'),
     document.getElementById('trend-legend'), document.getElementById('trend-arrow'),
     entries, stats, allDates
   );

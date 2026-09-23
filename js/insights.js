@@ -449,49 +449,73 @@ function renderTrendArrow(arrowContainer, points) {
   arrowContainer.onmouseleave = hideTip;
 }
 
-// 'current' = the rolling last-30-days window (same as before); 'previous' =
-// a fixed prior calendar month (e.g. all of August), not a rolling window.
-let trendViewMode = 'current';
+// 0 = the rolling last-30-days window (same as before); N>0 = a fixed
+// calendar month N months before this one (1 = last month, 2 = two months
+// back, etc.) - not a rolling window, so an early, partial month (e.g. the
+// very first month the user ever logged) still renders whatever days exist
+// in it rather than needing a full 30/31 days to show anything.
+let trendMonthsBack = 0;
 
-function previousMonthRange(todayStr) {
+function monthsBetween(fromDateStr, toDateStr) {
+  const a = new Date(fromDateStr + 'T00:00:00Z');
+  const b = new Date(toDateStr + 'T00:00:00Z');
+  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+}
+
+function monthRangeBack(monthsBack, todayStr) {
   const d = new Date(todayStr + 'T00:00:00Z');
-  const firstOfThisMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
-  const lastOfPrevMonth = new Date(firstOfThisMonth.getTime() - 24 * 60 * 60 * 1000);
-  const firstOfPrevMonth = new Date(Date.UTC(lastOfPrevMonth.getUTCFullYear(), lastOfPrevMonth.getUTCMonth(), 1));
-  const start = firstOfPrevMonth.toISOString().slice(0, 10);
-  const end = lastOfPrevMonth.toISOString().slice(0, 10);
+  const firstOfTargetMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - monthsBack, 1));
+  const firstOfNextMonth = new Date(Date.UTC(firstOfTargetMonth.getUTCFullYear(), firstOfTargetMonth.getUTCMonth() + 1, 1));
+  const lastOfTargetMonth = new Date(firstOfNextMonth.getTime() - 24 * 60 * 60 * 1000);
+  const start = firstOfTargetMonth.toISOString().slice(0, 10);
+  const end = lastOfTargetMonth.toISOString().slice(0, 10);
   const dates = [];
   for (let dt = start; dt <= end; dt = addDays(dt, 1)) dates.push(dt);
   return dates;
 }
 
+function monthNameFor(dateStr) {
+  return new Date(dateStr + 'T00:00:00Z').toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+}
+
 // Wires the "< Previous Month" / "Current 30 Days" toggle and (re)renders
-// the chart for whichever is currently selected - self-contained the same
-// way the mini-asana-chart tabs re-invoke themselves on click.
-function renderTrendSection(navContainer, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates) {
+// the chart (plus the "| <Month>" title suffix) for whichever is currently
+// selected - self-contained the same way the mini-asana-chart tabs
+// re-invoke themselves on click. Each "<" click steps one more calendar
+// month further back; it stops at the month of the very first entry ever
+// logged rather than paging into months with nothing in them at all.
+function renderTrendSection(navContainer, monthLabelEl, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const maxMonthsBack = allDates.length ? monthsBetween(allDates[0], todayStr) : 0;
+  const canGoBack = trendMonthsBack < maxMonthsBack;
+
   navContainer.innerHTML = `
-    <button type="button" class="trend-nav-arrow" id="trend-prev-btn" aria-label="Previous month">&lsaquo;</button>
-    <button type="button" class="trend-nav-current ${trendViewMode === 'current' ? 'active' : ''}" id="trend-current-btn">Current 30 Days</button>
+    <button type="button" class="trend-nav-arrow" id="trend-prev-btn" aria-label="Previous month" ${canGoBack ? '' : 'disabled'}>&lsaquo;</button>
+    <button type="button" class="trend-nav-current ${trendMonthsBack === 0 ? 'active' : ''}" id="trend-current-btn">Current 30 Days</button>
   `;
   navContainer.querySelector('#trend-prev-btn').addEventListener('click', () => {
-    trendViewMode = 'previous';
-    renderTrendSection(navContainer, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates);
+    if (trendMonthsBack >= maxMonthsBack) return;
+    trendMonthsBack += 1;
+    renderTrendSection(navContainer, monthLabelEl, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates);
   });
   navContainer.querySelector('#trend-current-btn').addEventListener('click', () => {
-    trendViewMode = 'current';
-    renderTrendSection(navContainer, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates);
+    trendMonthsBack = 0;
+    renderTrendSection(navContainer, monthLabelEl, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates);
   });
 
-  const todayStr = new Date().toISOString().slice(0, 10);
   let trendDates = [];
-  if (trendViewMode === 'previous') {
-    trendDates = previousMonthRange(todayStr);
-  } else {
+  let monthLabel;
+  if (trendMonthsBack === 0) {
     const trendStart = stats.last30Dates.length ? stats.last30Dates[0] : allDates[0];
     if (trendStart) {
       for (let d = trendStart; d <= todayStr; d = addDays(d, 1)) trendDates.push(d);
     }
+    monthLabel = monthNameFor(todayStr);
+  } else {
+    trendDates = monthRangeBack(trendMonthsBack, todayStr);
+    monthLabel = monthNameFor(trendDates[0]);
   }
+  if (monthLabelEl) monthLabelEl.textContent = `| ${monthLabel}`;
   renderTrendChart(chartContainer, entriesMap, trendDates, legendContainer, arrowContainer);
 }
 
@@ -524,10 +548,7 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
   const baselineY = h - padB;
 
   [0, 1, 2, 3, 4].forEach(v => {
-    svg.appendChild(svgEl('line', {
-      x1: padL, x2: w - padR, y1: yFor(v), y2: yFor(v),
-      stroke: v === 0 ? '#464038' : '#e6dcd0', 'stroke-width': v === 0 ? 1.5 : 1,
-    }));
+    svg.appendChild(svgEl('line', { x1: padL, x2: w - padR, y1: yFor(v), y2: yFor(v), stroke: '#e6dcd0', 'stroke-width': 1 }));
     const t = svgEl('text', { x: 4, y: yFor(v) + 4, 'font-size': 10, fill: '#464038' });
     t.textContent = v; svg.appendChild(t);
   });

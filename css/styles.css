@@ -340,6 +340,8 @@ body.signin-page {
   padding: 4px 6px;
 }
 .trend-nav-arrow:hover { color: var(--maroon); }
+.trend-nav-arrow:disabled { color: #d7d2c9; cursor: default; }
+.trend-nav-arrow:disabled:hover { color: #d7d2c9; }
 .trend-nav-current {
   font-family: var(--font);
   font-size: 12px;
