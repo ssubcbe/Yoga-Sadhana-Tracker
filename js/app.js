@@ -200,7 +200,7 @@ function renderEntryForm() {
     </div>
 
     <div class="card">
-      <h2 id="yogasanas-title">Yogasanas - My experience today</h2>
+      <h2 id="yogasanas-title">Yogasanas - My experience today${ASANAS.some(a => !isAsanaActivated(a.key)) ? ' <span class="activation-hint">(Some Asanas need your one time Activation)</span>' : ''}</h2>
       <div class="session-tabs">
         ${renderSessionTab('morning', 'Morning Session')}
         ${renderSessionTab('evening', 'Evening Session')}
@@ -214,7 +214,7 @@ function renderEntryForm() {
     </div>
 
     <div class="card">
-      <h2>Kriyas and Sadhanas done today</h2>
+      <h2>Kriyas and Sadhanas done today${KRIYA_SADHANA_ITEMS.some(i => !isKriyaActivated(i.key)) ? ' <span class="activation-hint">(Some Kriyas and Sadhanas need your one time Activation)</span>' : ''}</h2>
       <div class="kriya-sadhana-grid">
         ${KRIYA_SADHANA_ITEMS.map(item => renderKriyaSadhanaTile(item)).join('')}
       </div>
@@ -427,8 +427,23 @@ function wireAsanaActivateButtons(root) {
     btn.addEventListener('click', () => {
       activateAsana(btn.dataset.activateKey);
       refreshPoseTile(btn.dataset.activateKey);
+      refreshActivationHints();
     });
   });
+}
+
+// Both card headings carry a "some still need activation" hint that should
+// disappear the moment the last locked tile in that card gets activated -
+// cheaper to just recompute and swap the hint span than re-render the card.
+function refreshActivationHints() {
+  const asanaHint = document.querySelector('#yogasanas-title .activation-hint');
+  const asanasDone = !ASANAS.some(a => !isAsanaActivated(a.key));
+  if (asanaHint && asanasDone) asanaHint.remove();
+
+  const kriyaTitle = [...document.querySelectorAll('.card h2')].find(h => h.textContent.startsWith('Kriyas and Sadhanas done today'));
+  const kriyaHint = kriyaTitle && kriyaTitle.querySelector('.activation-hint');
+  const kriyasDone = !KRIYA_SADHANA_ITEMS.some(i => !isKriyaActivated(i.key));
+  if (kriyaHint && kriyasDone) kriyaHint.remove();
 }
 
 function renderKriyaSadhanaTile(item) {
@@ -471,6 +486,7 @@ function wireKriyaActivateButtons(root) {
     btn.addEventListener('click', () => {
       activateKriya(btn.dataset.activateKey);
       refreshKriyaSadhanaTile(btn.dataset.activateKey);
+      refreshActivationHints();
     });
   });
 }

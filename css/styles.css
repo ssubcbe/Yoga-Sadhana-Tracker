@@ -155,6 +155,7 @@ body.signin-page {
    headings used on the other tabs. */
 #tab-entry .card h2 { font-weight: var(--weight-bold); }
 .card h3 { font-size: 14px; color: var(--ink); margin: 0 0 10px; font-weight: var(--weight-light); text-transform: uppercase; letter-spacing: 0.03em; }
+.activation-hint { color: var(--ink-muted); font-size: 12px; text-transform: none; letter-spacing: normal; font-weight: var(--weight-light); }
 
 /* Date gets the flexible space; the sex picker/avatar sits in a fixed-width
    column on the right so its width never jumps between the "pick" and
