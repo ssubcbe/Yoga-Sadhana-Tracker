@@ -576,7 +576,10 @@ function renderInsightsTab() {
     <div id="insight-trend" class="card">
       <div class="trend-header">
         <h2 class="trend-title">30-Day Overall Yoga Asanas Trend</h2>
-        <span id="trend-arrow" class="trend-arrow"></span>
+        <div class="trend-header-right">
+          <div id="trend-nav" class="trend-nav"></div>
+          <span id="trend-arrow" class="trend-arrow"></span>
+        </div>
       </div>
       <div id="trend-chart"></div>
       <div id="trend-legend" class="legend-row"></div>
@@ -594,15 +597,10 @@ function renderInsightsTab() {
       <div id="mini-chart-grid" class="mini-chart-grid"></div>
     </div>
   `;
-  const trendStart = stats.last30Dates.length ? stats.last30Dates[0] : allDates[0];
-  const trendDates = [];
-  if (trendStart) {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    for (let d = trendStart; d <= todayStr; d = addDays(d, 1)) trendDates.push(d);
-  }
-  renderTrendChart(
-    document.getElementById('trend-chart'), entries, trendDates,
-    document.getElementById('trend-legend'), document.getElementById('trend-arrow')
+  renderTrendSection(
+    document.getElementById('trend-nav'), document.getElementById('trend-chart'),
+    document.getElementById('trend-legend'), document.getElementById('trend-arrow'),
+    entries, stats, allDates
   );
   renderShapingSection(document.getElementById('shaping-grid'), entries, isKriyaActivated);
   renderMiniAsanaCharts(document.getElementById('mini-chart-tabs'), document.getElementById('mini-chart-grid'), entries);

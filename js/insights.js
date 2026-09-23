@@ -449,6 +449,52 @@ function renderTrendArrow(arrowContainer, points) {
   arrowContainer.onmouseleave = hideTip;
 }
 
+// 'current' = the rolling last-30-days window (same as before); 'previous' =
+// a fixed prior calendar month (e.g. all of August), not a rolling window.
+let trendViewMode = 'current';
+
+function previousMonthRange(todayStr) {
+  const d = new Date(todayStr + 'T00:00:00Z');
+  const firstOfThisMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+  const lastOfPrevMonth = new Date(firstOfThisMonth.getTime() - 24 * 60 * 60 * 1000);
+  const firstOfPrevMonth = new Date(Date.UTC(lastOfPrevMonth.getUTCFullYear(), lastOfPrevMonth.getUTCMonth(), 1));
+  const start = firstOfPrevMonth.toISOString().slice(0, 10);
+  const end = lastOfPrevMonth.toISOString().slice(0, 10);
+  const dates = [];
+  for (let dt = start; dt <= end; dt = addDays(dt, 1)) dates.push(dt);
+  return dates;
+}
+
+// Wires the "< Previous Month" / "Current 30 Days" toggle and (re)renders
+// the chart for whichever is currently selected - self-contained the same
+// way the mini-asana-chart tabs re-invoke themselves on click.
+function renderTrendSection(navContainer, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates) {
+  navContainer.innerHTML = `
+    <button type="button" class="trend-nav-arrow" id="trend-prev-btn" aria-label="Previous month">&lsaquo;</button>
+    <button type="button" class="trend-nav-current ${trendViewMode === 'current' ? 'active' : ''}" id="trend-current-btn">Current 30 Days</button>
+  `;
+  navContainer.querySelector('#trend-prev-btn').addEventListener('click', () => {
+    trendViewMode = 'previous';
+    renderTrendSection(navContainer, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates);
+  });
+  navContainer.querySelector('#trend-current-btn').addEventListener('click', () => {
+    trendViewMode = 'current';
+    renderTrendSection(navContainer, chartContainer, legendContainer, arrowContainer, entriesMap, stats, allDates);
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let trendDates = [];
+  if (trendViewMode === 'previous') {
+    trendDates = previousMonthRange(todayStr);
+  } else {
+    const trendStart = stats.last30Dates.length ? stats.last30Dates[0] : allDates[0];
+    if (trendStart) {
+      for (let d = trendStart; d <= todayStr; d = addDays(d, 1)) trendDates.push(d);
+    }
+  }
+  renderTrendChart(chartContainer, entriesMap, trendDates, legendContainer, arrowContainer);
+}
+
 function renderTrendChart(container, entriesMap, dateList, legendContainer, arrowContainer) {
   container.innerHTML = '';
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -477,8 +523,11 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
   const xFor = (i) => padL + i * xStep;
   const baselineY = h - padB;
 
-  [1, 2, 3, 4].forEach(v => {
-    svg.appendChild(svgEl('line', { x1: padL, x2: w - padR, y1: yFor(v), y2: yFor(v), stroke: '#e6dcd0', 'stroke-width': 1 }));
+  [0, 1, 2, 3, 4].forEach(v => {
+    svg.appendChild(svgEl('line', {
+      x1: padL, x2: w - padR, y1: yFor(v), y2: yFor(v),
+      stroke: v === 0 ? '#464038' : '#e6dcd0', 'stroke-width': v === 0 ? 1.5 : 1,
+    }));
     const t = svgEl('text', { x: 4, y: yFor(v) + 4, 'font-size': 10, fill: '#464038' });
     t.textContent = v; svg.appendChild(t);
   });
@@ -491,25 +540,11 @@ function renderTrendChart(container, entriesMap, dateList, legendContainer, arro
   for (let i = tickStep; i < points.length - 1; i += tickStep) tickIdxs.add(i);
   const sortedTicks = Array.from(tickIdxs).sort((a, b) => a - b);
 
-  // The line breaks across a no-data gap rather than diving down to the
-  // grey/zero marker and back up - draw one smoothed segment per run of
-  // consecutive real-data points, instead of a single path across all of
-  // them. The grey marker still sits at 0 on its own; it's just no longer
-  // connected to its neighbors by a line.
-  let run = [];
-  const runs = [];
-  points.forEach((p, i) => {
-    if (p.hasData) {
-      run.push({ x: xFor(i), y: yFor(p.score) });
-    } else if (run.length) {
-      runs.push(run);
-      run = [];
-    }
-  });
-  if (run.length) runs.push(run);
-  runs.forEach(r => {
-    svg.appendChild(svgEl('path', { d: smoothPathD(r), fill: 'none', stroke: '#E8842A', 'stroke-width': 2 }));
-  });
+  // One continuous curve across every point, including no-data days - those
+  // dip to 0 (the same y as their grey marker) rather than breaking the
+  // line into disconnected segments.
+  const linePoints = points.map((p, i) => ({ x: xFor(i), y: yFor(p.hasData ? p.score : 0) }));
+  svg.appendChild(svgEl('path', { d: smoothPathD(linePoints), fill: 'none', stroke: '#E8842A', 'stroke-width': 2 }));
 
   // Plain days and no-data markers keep this radius; New Moon/Full
   // Moon/Ekadashi are drawn at double this (see SPECIAL_MARKER_R below) so
