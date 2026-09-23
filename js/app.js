@@ -42,6 +42,22 @@ function activateKriya(key) {
   Storage.saveSettings(CURRENT_USER.email, s);
 }
 
+// Same lock-until-activated pattern, for the specific asanas that need
+// readiness/initiation before practising (see the reference mockup) -
+// every other asana is unlocked by default.
+const ASANA_LOCK_KEYS = ['sarvangasana', 'ardhamatsyendrasana', 'spinal-twist', 'shalabhasana', 'naukasana', 'bhujangasana', 'dhanurasana'];
+function isAsanaActivated(key) {
+  if (!ASANA_LOCK_KEYS.includes(key)) return true;
+  const s = Storage.getSettings(CURRENT_USER.email);
+  return !!(s.activatedAsanas && s.activatedAsanas[key]);
+}
+function activateAsana(key) {
+  const s = Storage.getSettings(CURRENT_USER.email);
+  if (!s.activatedAsanas) s.activatedAsanas = {};
+  s.activatedAsanas[key] = true;
+  Storage.saveSettings(CURRENT_USER.email, s);
+}
+
 function blankEntry(date) {
   return {
     date,
@@ -277,6 +293,7 @@ function renderEntryForm() {
 
   wireSmileyButtons(document);
   wireKriyaActivateButtons(document);
+  wireAsanaActivateButtons(document);
 
   // A gentle nudge rather than a hard block on Submit - clicking into the
   // Yogasanas section reminds the user once if the currently-active
@@ -380,6 +397,17 @@ function renderSessionTab(session, title) {
 }
 
 function renderPoseTile(asana) {
+  if (!isAsanaActivated(asana.key)) {
+    return `
+      <div class="pose-tile locked" data-pose-key="${asana.key}">
+        ${ICONS[asana.icon]}
+        <div class="pose-name">${asana.name}</div>
+        <div class="lock-panel">
+          <p class="lock-text">Activate this Asana when you're ready to practise it.</p>
+          <button type="button" class="action-btn asana-activate-btn" data-activate-key="${asana.key}">Activate</button>
+        </div>
+      </div>`;
+  }
   const selected = DRAFT.asanaRatings[activeSession][asana.key];
   return `
     <div class="pose-tile ${selected ? 'rated' : ''}" data-pose-key="${asana.key}">
@@ -398,7 +426,18 @@ function refreshPoseTile(key) {
   const asana = ASANAS.find(a => a.key === key);
   const tile = document.querySelector(`.pose-tile[data-pose-key="${key}"]`);
   tile.outerHTML = renderPoseTile(asana);
-  wireSmileyButtons(document.querySelector(`.pose-tile[data-pose-key="${key}"]`));
+  const refreshed = document.querySelector(`.pose-tile[data-pose-key="${key}"]`);
+  wireSmileyButtons(refreshed);
+  wireAsanaActivateButtons(refreshed);
+}
+
+function wireAsanaActivateButtons(root) {
+  root.querySelectorAll('.asana-activate-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activateAsana(btn.dataset.activateKey);
+      refreshPoseTile(btn.dataset.activateKey);
+    });
+  });
 }
 
 function renderKriyaSadhanaTile(item) {
@@ -407,8 +446,8 @@ function renderKriyaSadhanaTile(item) {
       <div class="pose-tile kriya-sadhana-tile locked" data-kriya-key="${item.key}">
         ${ICONS[item.icon]}
         <div class="pose-name">${item.name}</div>
-        <div class="kriya-lock-panel">
-          <p class="kriya-lock-text">If you have been initiated into this practice, please activate here.</p>
+        <div class="lock-panel">
+          <p class="lock-text">If you have been initiated into this practice, please activate here.</p>
           <button type="button" class="action-btn kriya-activate-btn" data-activate-key="${item.key}">Activate</button>
         </div>
       </div>`;
@@ -452,10 +491,13 @@ async function saveEntry() {
     return;
   }
   // A session with zero ratings just wasn't attempted (fine - sessions are
-  // optional); one with SOME but not all 24 is what counts as "missing some".
+  // optional); one with SOME but not all activated asanas is what counts as
+  // "missing some" - locked (not-yet-activated) asanas have no way to be
+  // rated, so they don't count toward the denominator.
+  const activatedAsanaCount = ASANAS.filter(a => isAsanaActivated(a.key)).length;
   const sessionPartial = (ratings) => {
     const n = Object.keys(ratings).length;
-    return n > 0 && n < ASANAS.length;
+    return n > 0 && n < activatedAsanaCount;
   };
   const missingSomeAsanas = sessionPartial(DRAFT.asanaRatings.morning) || sessionPartial(DRAFT.asanaRatings.evening);
   // Locked (not-yet-activated) kriyas have no way to answer them, so only

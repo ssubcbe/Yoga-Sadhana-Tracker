@@ -1434,8 +1434,10 @@ function renderKriyaBox(container, entriesMap, isActivatedFn) {
 function renderShapingSection(container, entriesMap, isKriyaActivatedFn) {
   container.innerHTML = '';
   const entries = lastNDaysEntries(entriesMap, SHAPING_WINDOW_DAYS);
+  const hasFemale = Object.values(entriesMap).some(e => e.sex === 'female');
+  const topics = SHAPING_TOPICS.filter(t => t.key !== 'menstrual' || hasFemale);
 
-  SHAPING_TOPICS.forEach(topic => {
+  topics.forEach(topic => {
     const cell = document.createElement('div');
     cell.className = 'factor-cell shaping-cell';
     cell.dataset.topic = topic.key;
